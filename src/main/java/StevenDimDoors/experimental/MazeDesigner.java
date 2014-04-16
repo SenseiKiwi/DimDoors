@@ -25,24 +25,38 @@ public class MazeDesigner
 	
 	public static MazeDesign generate(Random random)
 	{
-		// Construct a random binary space partitioning of our maze volume
-		PartitionNode<RoomData> root = partitionRooms(MAZE_WIDTH, MAZE_HEIGHT, MAZE_LENGTH, SPLIT_COUNT, random);
-
-		// Attach rooms to all the leaf nodes of the partition tree
-		ArrayList<RoomData> rooms = new ArrayList<RoomData>(1 << SPLIT_COUNT);
-		attachRooms(root, rooms);
+		PartitionNode<RoomData> root;
+		ArrayList<RoomData> rooms;
+		DirectedGraph<RoomData, DoorwayData> layout;
+		ArrayList<RoomData> cores;
 		
-		// Shuffle the list of rooms so that they're not listed in any ordered way in the room graph
-		// This is the only convenient way of randomizing the maze sections generated later
-		Collections.shuffle(rooms, random);
-		
-		// Construct an adjacency graph of the rooms we've carved out. Two rooms are
-		// considered adjacent if and only if a doorway could connect them. Their
-		// common boundary must be large enough for a doorway.
-		DirectedGraph<RoomData, DoorwayData> layout = createRoomGraph(root, rooms, random);
-		
-		// Cut out random subgraphs from the adjacency graph
-		ArrayList<RoomData> cores = createMazeSections(layout, random);
+		do
+		{
+			root = null;
+			rooms = null;
+			layout = null;
+			cores = null;
+			
+			// Construct a random binary space partitioning of our maze volume
+			root = partitionRooms(MAZE_WIDTH, MAZE_HEIGHT, MAZE_LENGTH, SPLIT_COUNT, random);
+	
+			// Attach rooms to all the leaf nodes of the partition tree
+			rooms = new ArrayList<RoomData>(1 << SPLIT_COUNT);
+			attachRooms(root, rooms);
+			
+			// Shuffle the list of rooms so that they're not listed in any ordered way in the room graph
+			// This is the only convenient way of randomizing the maze sections generated later
+			Collections.shuffle(rooms, random);
+			
+			// Construct an adjacency graph of the rooms we've carved out. Two rooms are
+			// considered adjacent if and only if a doorway could connect them. Their
+			// common boundary must be large enough for a doorway.
+			layout = createRoomGraph(root, rooms, random);
+			
+			// Cut out random subgraphs from the adjacency graph
+			cores = createMazeSections(layout, random);
+		}
+		while (cores.isEmpty());
 		
 		// Remove unnecessary passages through floors/ceilings and some from the walls
 		for (RoomData core : cores)
@@ -347,16 +361,16 @@ public class MazeDesigner
 		// We split the maze into sections by choosing core rooms and removing
 		// rooms that are a certain number of doorways away. However, for a section
 		// to be valid, it must also have enough space for at least two doors in
-		// rooms without floor holes. If a section can't fit two doors, more
-		// neighboring rooms are added until the necessary space is found or the
-		// search space is exhausted.
+		// rooms without floor holes, or else it'll be discarded.
 		
-		final int MAX_DISTANCE = 2 + random.nextInt(2);
+		final int BASE_MAX_DISTANCE = 2;
+		final int MAX_DISTANCE_CHANGE = 2;
 		final int MIN_SECTION_ROOMS = 5;
 		final int MIN_SECTION_CAPACITY = 2;
 		
-		int distance;
 		int capacity;
+		int maxDistance;
+		int nextDistance;
 		RoomData room;
 		RoomData neighbor;
 		boolean hasHoles;
@@ -386,33 +400,27 @@ public class MazeDesigner
 			if (room != null && room.getDistance() < 0)
 			{
 				// Perform a breadth-first search to tag surrounding nodes with distances
+				maxDistance = BASE_MAX_DISTANCE + random.nextInt(MAX_DISTANCE_CHANGE + 1);
 				ordering.add(room);
 				room.setDistance(0);
 				section.clear();
-				capacity = 0;
 				
-				while (room != null && (room.getDistance() <= MAX_DISTANCE || capacity < 2))
+				while (room != null && room.getDistance() <= maxDistance)
 				{
 					ordering.remove();
 					section.add(room);
 					roomNode = room.getLayoutNode();
-					distance = room.getDistance() + 1;
-					hasHoles = false;
+					nextDistance = room.getDistance() + 1;
 					
 					// Visit neighboring rooms and assign them distances,
 					// if they don't have a proper distance assigned already.
-					// Also check for floor holes.
 					for (IEdge<RoomData, DoorwayData> edge : roomNode.inbound())
 					{
 						neighbor = edge.head().data();
 						if (neighbor.getDistance() < 0)
 						{
-							neighbor.setDistance(distance);
+							neighbor.setDistance(nextDistance);
 							ordering.add(neighbor);
-						}
-						if (edge.data().axis() == DoorwayData.Y_AXIS)
-						{
-							hasHoles = true;
 						}
 					}
 					for (IEdge<RoomData, DoorwayData> edge : roomNode.outbound())
@@ -420,26 +428,41 @@ public class MazeDesigner
 						neighbor = edge.tail().data();
 						if (neighbor.getDistance() < 0)
 						{
-							neighbor.setDistance(distance);
+							neighbor.setDistance(nextDistance);
 							ordering.add(neighbor);
 						}
 					}
-					
-					// Count this room's door capacity if it has no floor holes
-					if (!hasHoles)
-					{
-						capacity += room.estimateDoorCapacity();
-					}
-					
 					room = ordering.peek();
 				}
 				
 				// The remaining rooms in the ordering are those that are at the
-				// frontier of structure. They must be removed to create a gap
-				// between this section and other sections.
+				// frontier of the structure. They must be removed to create
+				// a gap between this section and other sections.
 				while (!ordering.isEmpty())
 				{
 					ordering.remove().remove();
+				}
+				
+				// Now iterate over all rooms in the section. If a room doesn't have
+				// floor holes, then add its capacity to the total door capacity of
+				// the whole section. This has to be done after removing frontier
+				// rooms because those can be linked in by floor holes.
+				capacity = 0;
+				for (RoomData candidate : section)
+				{
+					hasHoles = false;
+					roomNode = candidate.getLayoutNode();
+					for (IEdge<RoomData, DoorwayData> passage : roomNode.inbound())
+					{
+						if (passage.data().axis() == DoorwayData.Y_AXIS)
+						{
+							hasHoles = true;
+						}
+					}
+					if (!hasHoles)
+					{
+						capacity += candidate.estimateDoorCapacity();
+					}
 				}
 				
 				// Check if this section contains enough rooms and capacity for doors

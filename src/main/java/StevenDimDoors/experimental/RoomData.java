@@ -115,8 +115,8 @@ public class RoomData
 		if (capacity >= 0)
 			return capacity;
 		
-		int cellsX = (partitionNode.width() - 3) / 2;
-		int cellsZ = (partitionNode.length() - 3) / 2;
+		int cellsX = (partitionNode.width() - 2) / 3;
+		int cellsZ = (partitionNode.length() - 2) / 3;
 		capacity = Math.min(cellsX * cellsZ, 3);
 		return capacity;
 	}
