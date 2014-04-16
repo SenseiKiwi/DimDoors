@@ -28,16 +28,37 @@ public class MazeBuilder
 	public static void generate(World world, int x, int y, int z, Random random, DDProperties properties)
 	{
 		// ISSUE FOR LATER: The room needs to be shifted so as to be centered on its entrance
+		/*int trials = 100000;
+		long average = 0;
+		long timing = 0;
+		long min = Integer.MAX_VALUE;
+		long max = Integer.MIN_VALUE;
+		for (int k = 0; k < trials; k++)
+		{
+			timing = System.nanoTime();
+			MazeDesigner.generate(random);
+			timing = System.nanoTime() - timing;
+			average += timing;
+			min = Math.min(min, timing);
+			max = Math.max(max, timing);
+		}
+		average /= trials;
+		System.out.println("MIN DESIGN TIME: " + (min / 1000000) + " ms");
+		System.out.println("MAX DESIGN TIME: " + (max / 1000000) + " ms");
+		System.out.println("AVERAGE DESIGN TIME: " + (average / 1000000) + " ms");*/
+		
 		
 		MazeDesign design = MazeDesigner.generate(random);
-		Point3D offset = new Point3D(x - design.width() / 2, y - design.height() - 1, z - design.length() / 2);
+		BoundingBox bounds = design.getBounds();
+		Point3D offset = new Point3D(x - bounds.width() / 2, y - bounds.height() - 1, z - bounds.length() / 2);
+		offset.subtract(bounds.minCorner());
 		SphereDecayOperation decay = new SphereDecayOperation(random, 0, 0, Block.stoneBrick.blockID, 2);
 		
 		buildRooms(design.getLayout(), world, offset);
 		carveDoorways(design.getLayout(), world, offset, decay, random);
 		applyRandomDestruction(design, world, offset, decay, random);
 		decorateRooms(design.getLayout(), world, offset, random, properties);
-		buildPocketWalls(design, world, offset, properties);
+		buildPocketWalls(bounds, world, offset, properties);
 	}
 	
 	private static void applyRandomDestruction(MazeDesign design, World world,
@@ -50,14 +71,15 @@ public class MazeBuilder
 		int x, y, z;
 		int successes = 0;
 		int attempts = 0;
+		BoundingBox bounds = design.getBounds();
 		PartitionNode root = design.getRootPartition();
 		
 		for (; successes < DECAY_OPERATIONS && attempts < DECAY_ATTEMPTS; attempts++)
 		{
 			// Select the coordinates at which to apply the decay operation
-			x = random.nextInt(design.width()) - DECAY_BOX_SIZE / 2;
-			y = random.nextInt(design.height()) - DECAY_BOX_SIZE / 2;
-			z = random.nextInt(design.length()) - DECAY_BOX_SIZE / 2;
+			x = random.nextInt(bounds.width()) - DECAY_BOX_SIZE / 2;
+			y = random.nextInt(bounds.height()) - DECAY_BOX_SIZE / 2;
+			z = random.nextInt(bounds.length()) - DECAY_BOX_SIZE / 2;
 			
 			// Check that the decay operation would not impact any protected areas
 			// and mark the affected areas as decayed
@@ -321,11 +343,11 @@ public class MazeBuilder
 		setBlockDirectly(world, x, y + 1, z, 0, 0);
 	}
 	
-	private static void buildPocketWalls(MazeDesign design, World world, Point3D offset, DDProperties properties)
+	private static void buildPocketWalls(BoundingBox bounds, World world, Point3D offset, DDProperties properties)
 	{
 		// Build the inner Fabric of Reality box
 		Point3D minCorner = new Point3D(-POCKET_WALL_GAP - 1, -POCKET_WALL_GAP - 1, -POCKET_WALL_GAP - 1);
-		Point3D maxCorner = new Point3D(design.width() + POCKET_WALL_GAP, design.height() + POCKET_WALL_GAP, design.length() + POCKET_WALL_GAP);
+		Point3D maxCorner = new Point3D(bounds.width() + POCKET_WALL_GAP, bounds.height() + POCKET_WALL_GAP, bounds.length() + POCKET_WALL_GAP);
 		buildBox(world, offset, minCorner, maxCorner, properties.FabricBlockID, 0);
 		
 		// Build the outer Eternal Fabric box

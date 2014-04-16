@@ -29,6 +29,7 @@ public class MazeDesigner
 		ArrayList<RoomData> rooms;
 		DirectedGraph<RoomData, DoorwayData> layout;
 		ArrayList<RoomData> cores;
+		BoundingBox bounds;
 		
 		do
 		{
@@ -67,7 +68,10 @@ public class MazeDesigner
 		// Set up the placement of dimensional doors within the maze
 		createMazeLinks(layout, cores, random);
 		
-		return new MazeDesign(root, layout);
+		// Calculate bounding box
+		bounds = calculateBounds(layout);
+		
+		return new MazeDesign(root, layout, bounds);
 	}
 
 	private static void attachRooms(PartitionNode<RoomData> node, ArrayList<RoomData> partitions)
@@ -787,5 +791,34 @@ public class MazeDesigner
 		}
 		
 		// Done! At this point, all sections are connected.
+	}
+	
+	private static BoundingBox calculateBounds(DirectedGraph<RoomData, DoorwayData> layout)
+	{
+		int minX = Integer.MAX_VALUE;
+		int minY = Integer.MAX_VALUE;
+		int minZ = Integer.MAX_VALUE;
+		int maxX = Integer.MIN_VALUE;
+		int maxY = Integer.MIN_VALUE;
+		int maxZ = Integer.MIN_VALUE;
+		
+		Point3D min;
+		Point3D max;
+		PartitionNode<RoomData> partition;
+		for (IGraphNode<RoomData, DoorwayData> node : layout.nodes())
+		{
+			partition = node.data().getPartitionNode();
+			min = partition.minCorner();
+			max = partition.maxCorner();
+			
+			minX = Math.min(minX, min.getX());
+			minY = Math.min(minY, min.getY());
+			minZ = Math.min(minZ, min.getZ());
+			
+			maxX = Math.max(maxX, max.getX());
+			maxY = Math.max(maxY, max.getY());
+			maxZ = Math.max(maxZ, max.getZ());
+		}
+		return new BoundingBox(new Point3D(minX, minY, minZ), new Point3D(maxX, maxY, maxZ));
 	}
 }

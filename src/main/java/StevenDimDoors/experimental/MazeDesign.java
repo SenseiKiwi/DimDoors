@@ -1,16 +1,18 @@
 package StevenDimDoors.experimental;
 
-import java.util.ArrayList;
+import StevenDimDoors.mod_pocketDim.Point3D;
 
 public class MazeDesign
 {
 	private PartitionNode<RoomData> root;
 	private DirectedGraph<RoomData, DoorwayData> layout;
+	private BoundingBox bounds; // The real bounds of the design, which may be smaller than the root partition
 	
-	public MazeDesign(PartitionNode<RoomData> root, DirectedGraph<RoomData, DoorwayData> layout)
+	public MazeDesign(PartitionNode<RoomData> root, DirectedGraph<RoomData, DoorwayData> layout, BoundingBox bounds)
 	{
 		this.root = root;
 		this.layout = layout;
+		this.bounds = bounds;
 	}
 
 	public PartitionNode<RoomData> getRootPartition()
@@ -22,19 +24,9 @@ public class MazeDesign
 	{
 		return layout;
 	}
-	
-	public int width()
+
+	public BoundingBox getBounds()
 	{
-		return root.width();
-	}
-	
-	public int height()
-	{
-		return root.height();
-	}
-	
-	public int length()
-	{
-		return root.length();
+		return bounds;
 	}
 }
