@@ -30,7 +30,7 @@ public class DefaultDoorDecorator extends BaseDecorator
 		for (LinkPlan plan : room.getOutboundLinks())
 		{
 			source = new Point3D(corner.getX() + 2, corner.getY() + 2, corner.getZ() + count + 1);
-			ItemDoor.placeDoorBlock(world, source.getX(), source.getY() - 1, source.getZ(), 0, mod_pocketDim.dimensionalDoor);
+			super.placeDimensionalDoor(world, source.getX(), source.getY() - 1, source.getZ(), 0, plan.isInternal());
 			plan.setSourcePoint(source);
 			count++;
 		}
