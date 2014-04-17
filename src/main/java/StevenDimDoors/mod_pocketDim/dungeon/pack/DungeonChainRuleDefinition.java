@@ -11,22 +11,21 @@ public class DungeonChainRuleDefinition
 	
 	public DungeonChainRuleDefinition(ArrayList<String> conditions, ArrayList<WeightedContainer<String>> products)
 	{
-		//Validate the arguments, just in case
+		// Validate the arguments, just in case
 		if (conditions == null)
 		{
-			throw new NullPointerException("conditions cannot be null");
+			throw new NullPointerException("conditions cannot be null.");
 		}
 		if (products.isEmpty())
 		{
-			throw new IllegalArgumentException("products cannot be an empty list");
+			throw new IllegalArgumentException("products cannot be an empty list.");
 		}
 		for (WeightedContainer<String> product : products)
 		{
-			//Check for weights less than 1. Those could cause Minecraft's random selection algorithm to throw an exception.
-			//At the very least, they're useless values.
-			if (product.itemWeight < 1)
+			// Check for weights less than 1. Negatives cause exceptions and a sum of zero would also cause an exception.
+			if (product.getWeight() < 1)
 			{
-				throw new IllegalArgumentException("products cannot contain items with weights less than 1");
+				throw new IllegalArgumentException("products cannot contain items with weights less than 1.");
 			}
 		}
 		

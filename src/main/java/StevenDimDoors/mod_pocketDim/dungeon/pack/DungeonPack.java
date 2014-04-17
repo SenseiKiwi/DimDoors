@@ -6,11 +6,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Random;
 
-import net.minecraft.util.WeightedRandom;
 import StevenDimDoors.mod_pocketDim.core.NewDimData;
 import StevenDimDoors.mod_pocketDim.dungeon.DungeonData;
 import StevenDimDoors.mod_pocketDim.helpers.DungeonHelper;
 import StevenDimDoors.mod_pocketDim.util.WeightedContainer;
+import StevenDimDoors.mod_pocketDim.util.WeightedRandom;
 
 public class DungeonPack
 {
@@ -93,14 +93,11 @@ public class DungeonPack
 	public DungeonType getType(String typeName)
 	{
 		DungeonType result = nameToTypeMapping.get(typeName.toUpperCase());
-		if (result.Owner == this) //Filter out the wildcard dungeon type
+		if (result.Owner == this) // Filter out the wildcard dungeon type
 		{
 			return result;
 		}
-		else
-		{
-			return null;
-		}
+		return null;
 	}
 	
 	public boolean isKnownType(String typeName)
@@ -246,38 +243,32 @@ public class DungeonPack
 		{
 			return getRandomDungeon(random, allDungeons);
 		}
-		else
-		{
-			return null;
-		}
+		return null;
 	}
 	
 	private static DungeonType getRandomDungeonType(Random random, Collection<WeightedContainer<DungeonType>> types,
 			ArrayList<ArrayList<DungeonData>> groupedDungeons)
 	{
-		//TODO: Make this faster? This algorithm runs in quadratic time in the worst case because of the random-selection
-		//process and the removal search. Might be okay for normal use, though. ~SenseiKiwi
+		// TODO: Make this faster? This algorithm runs in quadratic time in the worst case because of the random-selection
+		// process and the removal search. Might be okay for normal use, though. ~SenseiKiwi
 		
-		//Pick a random dungeon type based on weights. Repeat this process until a non-empty group is found or all groups are checked.
+		// Pick a random dungeon type based on weights. Repeat this process until a non-empty group is found or all groups are checked.
 		while (!types.isEmpty())
 		{
-			//Pick a random dungeon type
+			// Pick a random dungeon type
 			@SuppressWarnings("unchecked")
-			WeightedContainer<DungeonType> resultContainer = (WeightedContainer<DungeonType>) WeightedRandom.getRandomItem(random, types);
+			WeightedContainer<DungeonType> resultContainer = WeightedRandom.getRandomItem(random, types);
 			
-			//Check if there are any dungeons of that type
+			// Check if there are any dungeons of that type
 			DungeonType selectedType = resultContainer.getData();
 			if (!groupedDungeons.get(selectedType.ID).isEmpty())
 			{
 				//Choose this type
 				return selectedType;
 			}
-			else
-			{
-				//We can't use this type because there are no dungeons of this type
-				//Remove it from the list of types and try again
-				types.remove(resultContainer);
-			}
+			// We can't use this type because there are no dungeons of this type
+			// Remove it from the list of types and try again
+			types.remove(resultContainer);
 		}
 		
 		//We have run out of types to try
@@ -286,7 +277,7 @@ public class DungeonPack
 	
 	private static DungeonData getRandomDungeon(Random random, Collection<DungeonData> dungeons)
 	{
-		//Use Minecraft's WeightedRandom to select our dungeon. =D
+		// Use WeightedRandom to select our dungeon
 		ArrayList<WeightedContainer<DungeonData>> weights =
 				new ArrayList<WeightedContainer<DungeonData>>(dungeons.size());
 		for (DungeonData dungeon : dungeons)
@@ -294,8 +285,7 @@ public class DungeonPack
 			weights.add(new WeightedContainer<DungeonData>(dungeon, dungeon.weight()));
 		}
 		
-		@SuppressWarnings("unchecked")
-		WeightedContainer<DungeonData> resultContainer = (WeightedContainer<DungeonData>) WeightedRandom.getRandomItem(random, weights);
+		WeightedContainer<DungeonData> resultContainer = WeightedRandom.getRandomItem(random, weights);
 		return 	(resultContainer != null) ? resultContainer.getData() : null;
 	}
 }

@@ -42,9 +42,9 @@ public class DungeonPackConfigReader extends BaseConfigurationProcessor<DungeonP
 	private final int MAX_PRODUCT_COUNT = MAX_CONDITION_LENGTH;
 	private final String COMMENT_MARKER = "##";
 
-	private final Pattern DUNGEON_TYPE_PATTERN = Pattern.compile("[A-Za-z0-9_\\-]{1,20}");
+	protected final Pattern DUNGEON_TYPE_PATTERN = Pattern.compile("[A-Za-z0-9_\\-]{1,20}");
 
-	private final Splitter WHITESPACE_SPLITTER = Splitter.on(CharMatcher.WHITESPACE).omitEmptyStrings();
+	protected final Splitter WHITESPACE_SPLITTER = Splitter.on(CharMatcher.WHITESPACE).omitEmptyStrings();
 	private final String SETTING_SEPARATOR = "=";
 	private final String RULE_SEPARATOR = "->";
 	private final String WEIGHT_SEPARATOR = "#";
@@ -119,7 +119,7 @@ public class DungeonPackConfigReader extends BaseConfigurationProcessor<DungeonP
 		}
 	}
 
-	private int readVersion(BufferedReader reader) throws ConfigurationProcessingException, IOException
+	private static int readVersion(BufferedReader reader) throws ConfigurationProcessingException, IOException
 	{
 		String firstLine = reader.readLine();
 		String[] parts = firstLine.split("\\s", 0);
@@ -156,10 +156,7 @@ public class DungeonPackConfigReader extends BaseConfigurationProcessor<DungeonP
 						reader.reset();
 						break;
 					}
-					else
-					{
-						processor.process(line, config);
-					}
+					processor.process(line, config);
 				}
 			}
 		}
@@ -209,6 +206,8 @@ public class DungeonPackConfigReader extends BaseConfigurationProcessor<DungeonP
 
 	private class DungeonTypeProcessor implements ILineProcessor
 	{
+		public DungeonTypeProcessor() { }
+		
 		@Override
 		public void process(String line, DungeonPackConfig config) throws ConfigurationProcessingException
 		{
@@ -218,10 +217,10 @@ public class DungeonPackConfigReader extends BaseConfigurationProcessor<DungeonP
 			if (DUNGEON_TYPE_PATTERN.matcher(line).matches())
 			{
 				//Ignore duplicate dungeon types
-				line = line.toUpperCase();
-				if (!typeNames.contains(line))
+				String upperLine = line.toUpperCase();
+				if (!typeNames.contains(upperLine))
 				{
-					typeNames.add(line);
+					typeNames.add(upperLine);
 				}
 			}
 			else
@@ -233,6 +232,8 @@ public class DungeonPackConfigReader extends BaseConfigurationProcessor<DungeonP
 	
 	private class DungeonSettingsParser implements ILineProcessor
 	{
+		public DungeonSettingsParser() { }
+
 		@Override
 		public void process(String line, DungeonPackConfig config) throws ConfigurationProcessingException
 		{
@@ -312,6 +313,8 @@ public class DungeonPackConfigReader extends BaseConfigurationProcessor<DungeonP
 
 	private class RuleDefinitionParser implements ILineProcessor
 	{
+		public RuleDefinitionParser() { }
+		
 		@Override
 		public void process(String definition, DungeonPackConfig config) throws ConfigurationProcessingException
 		{
@@ -398,12 +401,12 @@ public class DungeonPackConfigReader extends BaseConfigurationProcessor<DungeonP
 		}
 	}
 
-	private static boolean isKnownDungeonType(String typeName, List<String> typeNames)
+	protected static boolean isKnownDungeonType(String typeName, List<String> typeNames)
 	{
 		return typeName.equals(DungeonType.WILDCARD_TYPE.Name) || typeNames.contains(typeName);
 	}
 
-	private static boolean parseBoolean(String value)
+	protected static boolean parseBoolean(String value)
 	{
 		if (value.equalsIgnoreCase("true"))
 			return true;

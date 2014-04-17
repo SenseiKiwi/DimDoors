@@ -72,7 +72,7 @@ public class MazeBuilder
 		int successes = 0;
 		int attempts = 0;
 		BoundingBox bounds = design.getBounds();
-		PartitionNode root = design.getRootPartition();
+		PartitionNode<RoomData> root = design.getRootPartition();
 		
 		for (; successes < DECAY_OPERATIONS && attempts < DECAY_ATTEMPTS; attempts++)
 		{

@@ -17,7 +17,7 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.regex.Pattern;
 
-import net.minecraft.util.WeightedRandom;
+import net.minecraft.item.ItemDoor;
 import net.minecraft.world.World;
 import StevenDimDoors.mod_pocketDim.mod_pocketDim;
 import StevenDimDoors.mod_pocketDim.config.DDProperties;
@@ -31,9 +31,9 @@ import StevenDimDoors.mod_pocketDim.dungeon.pack.DungeonPack;
 import StevenDimDoors.mod_pocketDim.dungeon.pack.DungeonPackConfig;
 import StevenDimDoors.mod_pocketDim.dungeon.pack.DungeonPackConfigReader;
 import StevenDimDoors.mod_pocketDim.dungeon.pack.DungeonType;
-import StevenDimDoors.mod_pocketDim.items.ItemDimensionalDoor;
 import StevenDimDoors.mod_pocketDim.util.FileFilters;
 import StevenDimDoors.mod_pocketDim.util.WeightedContainer;
+import StevenDimDoors.mod_pocketDim.util.WeightedRandom;
 
 public class DungeonHelper
 {
@@ -260,24 +260,24 @@ public class DungeonHelper
 		return pack;
 	}
 	
-	public DimLink createCustomDungeonDoor(World world, int x, int y, int z)
+	public static DimLink createCustomDungeonDoor(World world, int x, int y, int z)
 	{
 		//Create a link above the specified position. Link to a new pocket dimension.
 		NewDimData dimension = PocketManager.getDimensionData(world);
 		DimLink link = dimension.createLink(x, y + 1, z, LinkTypes.POCKET, 3);
 		
 		//Place a Warp Door linked to that pocket
-		ItemDimensionalDoor.placeDoorBlock(world, x, y, z, 3, mod_pocketDim.warpDoor);
+		ItemDoor.placeDoorBlock(world, x, y, z, 3, mod_pocketDim.warpDoor);
 		
 		return link;
 	}
 	
-	public boolean validateDungeonType(String type, DungeonPack pack)
+	public static boolean validateDungeonType(String type, DungeonPack pack)
 	{
 		return pack.isKnownType(type);
 	}
 	
-	public boolean validateSchematicName(String name, DungeonPack pack)
+	public static boolean validateSchematicName(String name, DungeonPack pack)
 	{
 		String[] dungeonData;
 		
@@ -484,7 +484,7 @@ public class DungeonHelper
 		return pack;
 	}
 
-	public boolean exportDungeon(World world, int centerX, int centerY, int centerZ, String exportPath)
+	public static boolean exportDungeon(World world, int centerX, int centerY, int centerZ, String exportPath)
 	{
 		//Write schematic data to a file
 		try
@@ -557,7 +557,6 @@ public class DungeonHelper
 		return selection;
 	}
 
-	@SuppressWarnings("unchecked")
 	private DungeonPack getRandomDungeonPack(DungeonPack current, Random random)
 	{
 		DungeonPack selection = current;
@@ -575,7 +574,7 @@ public class DungeonHelper
 		if (!packs.isEmpty())
 		{
 			//Pick a random dungeon pack
-			selection = ((WeightedContainer<DungeonPack>) WeightedRandom.getRandomItem(random, packs)).getData();
+			selection = WeightedRandom.getRandomItem(random, packs).getData();
 		}
 		return selection;
 	}
@@ -649,7 +648,6 @@ public class DungeonHelper
 	 */
 	public static ArrayList<DungeonData> listDungeonsInTree(NewDimData root, DungeonPack pack, int maxSize)
 	{
-		int count = 0;
 		NewDimData current;
 		DungeonData dungeon;
 		ArrayList<DungeonData> dungeons = new ArrayList<DungeonData>();

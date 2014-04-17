@@ -15,30 +15,29 @@ public class DungeonChainRule
 		ArrayList<String> conditionNames = source.getCondition();
 		ArrayList<WeightedContainer<String>> productNames = source.getProducts();
 		
-		//Validate the data, just in case
+		// Validate the data, just in case
 		if (conditionNames == null)
 		{
-			throw new NullPointerException("source cannot have null conditions");
+			throw new NullPointerException("source cannot have null conditions.");
 		}
 		if (productNames == null)
 		{
-			throw new NullPointerException("source cannot have null products");
+			throw new NullPointerException("source cannot have null products.");
 		}
 		if (productNames.isEmpty())
 		{
-			throw new IllegalArgumentException("products cannot be an empty list");
+			throw new IllegalArgumentException("products cannot be an empty list.");
 		}
 		for (WeightedContainer<String> product : productNames)
 		{
-			//Check for weights less than 1. Those could cause Minecraft's random selection algorithm to throw an exception.
-			//At the very least, they're useless values.
-			if (product.itemWeight < 1)
+			// Check for weights less than 1. Negatives cause exceptions and a sum of zero would also cause an exception.
+			if (product.getWeight() < 1)
 			{
-				throw new IllegalArgumentException("products cannot contain items with weights less than 1");
+				throw new IllegalArgumentException("products cannot contain items with weights less than 1.");
 			}
 		}
 
-		//Obtain the IDs of dungeon types in reverse order. Reverse order makes comparing against chain histories easy.
+		// Obtain the IDs of dungeon types in reverse order. Reverse order makes comparing against chain histories easy.
 		condition = new int[conditionNames.size()];
 		for (int src = 0, dst = condition.length - 1; src < condition.length; src++, dst--)
 		{
@@ -47,7 +46,7 @@ public class DungeonChainRule
 		products = new ArrayList<WeightedContainer<DungeonType>>(productNames.size());
 		for (WeightedContainer<String> product : productNames)
 		{
-			products.add(new WeightedContainer<DungeonType>(nameToTypeMapping.get(product.getData()), product.itemWeight ));
+			products.add(new WeightedContainer<DungeonType>(nameToTypeMapping.get(product.getData()), product.getWeight() ));
 		}
 	}
 	
@@ -69,22 +68,18 @@ public class DungeonChainRule
 			}
 			return true;
 		}
-		else
-		{
-			return false;
-		}
+		return false;
 	}
 
 	public ArrayList<WeightedContainer<DungeonType>> products()
 	{
-		//Create a deep copy of the internal list of products. That way, if the list is modified externally,
-		//it won't affect the reference copy inside this rule.
+		// Create a deep copy of the internal list of products. That way, if the list is modified externally,
+		// it won't affect the reference copy inside this rule.
 		ArrayList<WeightedContainer<DungeonType>> copy = new ArrayList<WeightedContainer<DungeonType>>(products.size());
 		for (WeightedContainer<DungeonType> container : products)
 		{
 			copy.add(container.clone());
 		}
-		
 		return copy;
 	}
 }
