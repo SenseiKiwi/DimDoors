@@ -89,7 +89,7 @@ public class EventHookContainer
 		ItemStack stack = event.entityPlayer.inventory.getCurrentItem();
 		if (stack != null && stack.getItem() instanceof ItemDoor)
 		{
-			if (mod_pocketDim.itemDimensionalDoor.tryToPlaceDoor(stack, event.entityPlayer, world,
+			if (BaseItemDoor.tryToPlaceDoor(stack, event.entityPlayer, world,
 					event.x, event.y, event.z, event.face))
 			{
 				// Cancel the event so that we don't get two doors from vanilla doors

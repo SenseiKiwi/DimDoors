@@ -11,9 +11,9 @@ public class DirectedGraph<U, V>
 {
 	private static class GraphNode<P, Q> implements IGraphNode<P, Q>
 	{
-		private LinkedList<Edge<P, Q>> inbound;
-		private LinkedList<Edge<P, Q>> outbound;
-		private ILinkedListNode<GraphNode<P, Q>> graphEntry;
+		protected LinkedList<Edge<P, Q>> inbound;
+		protected LinkedList<Edge<P, Q>> outbound;
+		protected ILinkedListNode<GraphNode<P, Q>> graphEntry;
 		private P data;
 		
 		public GraphNode(P data, LinkedList<GraphNode<P, Q>> graphList)
@@ -24,26 +24,31 @@ public class DirectedGraph<U, V>
 			this.graphEntry = graphList.addLast(this);
 		}
 		
+		@Override
 		public int indegree()
 		{
 			return inbound.size();
 		}
 		
+		@Override
 		public int outdegree()
 		{
 			return outbound.size();
 		}
 		
+		@Override
 		public Iterable<Edge<P, Q>> inbound()
 		{
 			return inbound;
 		}
 		
+		@Override
 		public Iterable<Edge<P, Q>> outbound()
 		{
 			return outbound;
 		}
 		
+		@Override
 		public P data()
 		{
 			return data;
@@ -72,7 +77,7 @@ public class DirectedGraph<U, V>
 		private GraphNode<P, Q> tail;
 		private ILinkedListNode<Edge<P, Q>> headEntry;
 		private ILinkedListNode<Edge<P, Q>> tailEntry;
-		private ILinkedListNode<Edge<P, Q>> graphEntry;
+		protected ILinkedListNode<Edge<P, Q>> graphEntry;
 		private Q data;
 		
 		public Edge(GraphNode<P, Q> head, GraphNode<P, Q> tail, Q data, LinkedList<Edge<P, Q>> graphList)
@@ -85,16 +90,19 @@ public class DirectedGraph<U, V>
 			this.tailEntry = tail.inbound.addLast(this);
 		}
 		
+		@Override
 		public IGraphNode<P, Q> head()
 		{
 			return head;
 		}
 		
+		@Override
 		public IGraphNode<P, Q> tail()
 		{
 			return tail;
 		}
 		
+		@Override
 		public Q data()
 		{
 			return data;
@@ -202,7 +210,7 @@ public class DirectedGraph<U, V>
 		return data;
 	}
 	
-	public IEdge<U, V> findEdge(IGraphNode<U, V> head, IGraphNode<U, V> tail)
+	public static <U, V> IEdge<U, V> findEdge(IGraphNode<U, V> head, IGraphNode<U, V> tail)
 	{
 		for (IEdge<U, V> edge : head.outbound())
 		{

@@ -2,12 +2,10 @@ package StevenDimDoors.experimental.decorators;
 
 import java.util.Random;
 
-import net.minecraft.item.ItemDoor;
 import net.minecraft.world.World;
 import StevenDimDoors.experimental.LinkPlan;
 import StevenDimDoors.experimental.RoomData;
 import StevenDimDoors.mod_pocketDim.Point3D;
-import StevenDimDoors.mod_pocketDim.mod_pocketDim;
 import StevenDimDoors.mod_pocketDim.config.DDProperties;
 
 public class DefaultDoorDecorator extends BaseDecorator

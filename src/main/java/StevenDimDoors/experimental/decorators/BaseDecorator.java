@@ -17,7 +17,7 @@ public abstract class BaseDecorator
 	public abstract boolean canDecorate(RoomData room);
 	public abstract void decorate(RoomData room, World world, Point3D offset, Random random, DDProperties properties);
 	
-	public void placeDimensionalDoor(World world, int x, int y, int z, int orientation, boolean disablePair)
+	public static void placeDimensionalDoor(World world, int x, int y, int z, int orientation, boolean disablePair)
 	{
 		// Place a dimensional door but prevent it from generating a pair at its destination
 		ItemDoor.placeDoorBlock(world, x, y, z, orientation, mod_pocketDim.dimensionalDoor);

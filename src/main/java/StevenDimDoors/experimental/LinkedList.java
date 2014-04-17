@@ -16,10 +16,10 @@ public class LinkedList<T> implements Iterable<T>
 {
 	private static class Node<P> implements ILinkedListNode<P>
 	{
-		private Node<P> next;
-		private Node<P> prev;
-		private P data;
-		private LinkedList<P> owner;
+		protected Node<P> next;
+		protected Node<P> prev;
+		protected P data;
+		protected LinkedList<P> owner;
 		
 		public Node(Node<P> prev, Node<P> next, P data, LinkedList<P> owner)
 		{
@@ -72,13 +72,13 @@ public class LinkedList<T> implements Iterable<T>
 				throw new IllegalStateException("Cannot remove the header and trailer nodes of a list.");
 			}
 			
-			P data = this.data;
+			P result = this.data;
 			this.prev.next = this.next;
 			this.next.prev = this.prev;
 			this.owner.size--;
 
 			this.clear();
-			return data;
+			return result;
 		}
 		
 		public void clear()
@@ -92,8 +92,8 @@ public class LinkedList<T> implements Iterable<T>
 	
 	private static class LinkedListIterator<P> implements Iterator<P>
 	{
-		private Node<P> current;
-		private Node<P> trailer;
+		protected Node<P> current;
+		protected Node<P> trailer;
 		
 		public LinkedListIterator(LinkedList<P> list)
 		{
@@ -114,12 +114,9 @@ public class LinkedList<T> implements Iterable<T>
 			{
 				throw new NoSuchElementException();
 			}
-			else
-			{
-				P result = current.data;
-				current = current.next;
-				return result;
-			}
+			P result = current.data;
+			current = current.next;
+			return result;
 		}
 
 		@Override
@@ -129,9 +126,9 @@ public class LinkedList<T> implements Iterable<T>
 		}
 	}
 	
-	private Node<T> header; // Sentinel node
-	private Node<T> trailer; // Sentinel node
-	private int size;
+	protected Node<T> header; // Sentinel node
+	protected Node<T> trailer; // Sentinel node
+	protected int size;
 	
 	public LinkedList()
 	{
@@ -223,13 +220,14 @@ public class LinkedList<T> implements Iterable<T>
 	
 	private Node<T> addAfter(Node<T> node, T data)
 	{
-		Node<T> addition = new Node(node, node.next, data, this);
+		Node<T> addition = new Node<T>(node, node.next, data, this);
 		node.next = addition;
 		addition.next.prev = addition;
 		size++;
 		return addition;
 	}
 	
+	@Override
 	public Iterator<T> iterator()
 	{
 		return new LinkedListIterator<T>(this);

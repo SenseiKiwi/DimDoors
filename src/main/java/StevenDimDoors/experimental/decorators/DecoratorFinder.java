@@ -34,10 +34,7 @@ public class DecoratorFinder
 		{
 			return null;
 		}
-		else
-		{
-			return matches.get( random.nextInt(matches.size()) );
-		}
+		return matches.get( random.nextInt(matches.size()) );
 	}
 	
 	private static void load()

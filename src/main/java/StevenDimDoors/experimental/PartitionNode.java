@@ -4,9 +4,9 @@ import StevenDimDoors.mod_pocketDim.Point3D;
 
 public class PartitionNode<T> extends BoundingBox
 {
-	private PartitionNode parent;
-	private PartitionNode leftChild = null;
-	private PartitionNode rightChild = null;
+	private PartitionNode<T> parent;
+	private PartitionNode<T> leftChild = null;
+	private PartitionNode<T> rightChild = null;
 	private T data = null;
 	
 	public PartitionNode(int width, int height, int length)
@@ -15,7 +15,7 @@ public class PartitionNode<T> extends BoundingBox
 		parent = null;
 	}
 	
-	private PartitionNode(PartitionNode parent, Point3D minCorner, Point3D maxCorner)
+	private PartitionNode(PartitionNode<T> parent, Point3D minCorner, Point3D maxCorner)
 	{
 		super(minCorner, maxCorner);
 		this.parent = parent;
@@ -26,17 +26,17 @@ public class PartitionNode<T> extends BoundingBox
 		return (leftChild == null && rightChild == null);
 	}
 	
-	public PartitionNode leftChild()
+	public PartitionNode<T> leftChild()
 	{
 		return leftChild;
 	}
 	
-	public PartitionNode rightChild()
+	public PartitionNode<T> rightChild()
 	{
 		return rightChild;
 	}
 	
-	public PartitionNode parent()
+	public PartitionNode<T> parent()
 	{
 		return parent;
 	}
@@ -51,8 +51,8 @@ public class PartitionNode<T> extends BoundingBox
 		{
 			throw new IllegalArgumentException("The specified cutting plane is invalid.");
 		}
-		leftChild = new PartitionNode(this, minCorner, new Point3D(rightStart - 1, maxCorner.getY(), maxCorner.getZ()));
-		rightChild = new PartitionNode(this, new Point3D(rightStart, minCorner.getY(), minCorner.getZ()), maxCorner);
+		leftChild = new PartitionNode<T>(this, minCorner, new Point3D(rightStart - 1, maxCorner.getY(), maxCorner.getZ()));
+		rightChild = new PartitionNode<T>(this, new Point3D(rightStart, minCorner.getY(), minCorner.getZ()), maxCorner);
 	}
 	
 	public void splitByY(int rightStart)
@@ -65,8 +65,8 @@ public class PartitionNode<T> extends BoundingBox
 		{
 			throw new IllegalArgumentException("The specified cutting plane is invalid.");
 		}
-		leftChild = new PartitionNode(this, minCorner, new Point3D(maxCorner.getX(), rightStart - 1, maxCorner.getZ()));
-		rightChild = new PartitionNode(this, new Point3D(minCorner.getX(), rightStart, minCorner.getZ()), maxCorner);
+		leftChild = new PartitionNode<T>(this, minCorner, new Point3D(maxCorner.getX(), rightStart - 1, maxCorner.getZ()));
+		rightChild = new PartitionNode<T>(this, new Point3D(minCorner.getX(), rightStart, minCorner.getZ()), maxCorner);
 	}
 	
 	public void splitByZ(int rightStart)
@@ -79,8 +79,8 @@ public class PartitionNode<T> extends BoundingBox
 		{
 			throw new IllegalArgumentException("The specified cutting plane is invalid.");
 		}
-		leftChild = new PartitionNode(this, minCorner, new Point3D(maxCorner.getX(), maxCorner.getY(), rightStart - 1));
-		rightChild = new PartitionNode(this, new Point3D(minCorner.getX(), minCorner.getY(), rightStart), maxCorner);
+		leftChild = new PartitionNode<T>(this, minCorner, new Point3D(maxCorner.getX(), maxCorner.getY(), rightStart - 1));
+		rightChild = new PartitionNode<T>(this, new Point3D(minCorner.getX(), minCorner.getY(), rightStart), maxCorner);
 	}
 	
 	public void remove()
@@ -95,20 +95,17 @@ public class PartitionNode<T> extends BoundingBox
 		}
 	}
 
-	public PartitionNode findPoint(int x, int y, int z)
+	public PartitionNode<T> findPoint(int x, int y, int z)
 	{
 		// Find the lowest node that contains the specified point or return null
 		if (this.contains(x, y, z))
 		{
 			return this.findPointInternal(x, y, z);
 		}
-		else
-		{
-			return null;
-		}
+		return null;
 	}
 	
-	private PartitionNode findPointInternal(int x, int y, int z)
+	private PartitionNode<T> findPointInternal(int x, int y, int z)
 	{
 		if (leftChild != null && leftChild.contains(x, y, z))
 		{

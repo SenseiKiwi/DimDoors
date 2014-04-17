@@ -1,6 +1,5 @@
 package StevenDimDoors.experimental;
 
-import StevenDimDoors.mod_pocketDim.Point3D;
 
 public class MazeDesign
 {

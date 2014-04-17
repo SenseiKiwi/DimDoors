@@ -1,9 +1,7 @@
 package StevenDimDoors.experimental;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
@@ -87,14 +85,14 @@ public class MazeDesigner
 		}
 	}
 	
-	private static PartitionNode partitionRooms(int width, int height, int length, int maxLevels, Random random)
+	private static PartitionNode<RoomData> partitionRooms(int width, int height, int length, int maxLevels, Random random)
 	{
-		PartitionNode root = new PartitionNode(width, height, length);
+		PartitionNode<RoomData> root = new PartitionNode<RoomData>(width, height, length);
 		splitByRandomX(root, maxLevels, random);
 		return root;
 	}
 	
-	private static void splitByRandomX(PartitionNode node, int levels, Random random)
+	private static void splitByRandomX(PartitionNode<RoomData> node, int levels, Random random)
 	{
 		if (node.width() >= 2 * MIN_SIDE)
 		{
@@ -113,7 +111,7 @@ public class MazeDesigner
 		}
 	}
 	
-	private static void splitByRandomZ(PartitionNode node, int levels, Random random)
+	private static void splitByRandomZ(PartitionNode<RoomData> node, int levels, Random random)
 	{
 		if (node.length() >= 2 * MIN_SIDE)
 		{
@@ -132,7 +130,7 @@ public class MazeDesigner
 		}
 	}
 	
-	private static void splitByRandomY(PartitionNode node, int levels, Random random)
+	private static void splitByRandomY(PartitionNode<RoomData> node, int levels, Random random)
 	{
 		if (node.height() >= 2 * MIN_HEIGHT)
 		{
@@ -197,7 +195,7 @@ public class MazeDesigner
 		Point3D otherMax;
 		DoorwayData doorway;
 		
-		PartitionNode partition = room.getPartitionNode();
+		PartitionNode<RoomData> partition = room.getPartitionNode();
 		Point3D minCorner = partition.minCorner();
 		Point3D maxCorner = partition.maxCorner();
 		

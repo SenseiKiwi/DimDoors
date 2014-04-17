@@ -15,13 +15,13 @@ public class RoomData
 	private int capacity;
 	private int distance;
 	private boolean decayed;
-	private PartitionNode partitionNode;
+	private PartitionNode<RoomData> partitionNode;
 	private ArrayList<LinkPlan> inboundLinks;
 	private ArrayList<LinkPlan> outboundLinks;
 	private DirectedGraph<RoomData, DoorwayData> layout;
 	private IGraphNode<RoomData, DoorwayData> layoutNode;
 	
-	public RoomData(PartitionNode partitionNode)
+	public RoomData(PartitionNode<RoomData> partitionNode)
 	{
 		this.partitionNode = partitionNode;
 		this.inboundLinks = new ArrayList<LinkPlan>();
@@ -34,7 +34,7 @@ public class RoomData
 		partitionNode.setData(this);
 	}
 	
-	public PartitionNode getPartitionNode()
+	public PartitionNode<RoomData> getPartitionNode()
 	{
 		return this.partitionNode;
 	}
@@ -44,6 +44,7 @@ public class RoomData
 		return this.layoutNode;
 	}
 	
+	@SuppressWarnings("hiding")
 	public void addToLayout(DirectedGraph<RoomData, DoorwayData> layout)
 	{
 		this.layout = layout;
@@ -84,8 +85,8 @@ public class RoomData
 	{
 		// Remove the room from the partition tree and from the layout graph.
 		// Also remove any ancestors that become leaf nodes.
-		PartitionNode parent;
-		PartitionNode current = partitionNode;
+		PartitionNode<RoomData> parent;
+		PartitionNode<RoomData> current = partitionNode;
 		while (current != null && current.isLeaf())
 		{
 			parent = current.parent();

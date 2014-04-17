@@ -95,7 +95,7 @@ public class MazeBuilder
 	
 	private static boolean markDecayArea(int x, int y, int z, int DECAY_BOX_SIZE, PartitionNode<RoomData> root)
 	{
-		// Check if a given PartitionNode intersects the decay area. If it's a leaf, then check
+		// Check if a given PartitionNode<RoomData> intersects the decay area. If it's a leaf, then check
 		// if it's protected or not. Otherwise, check its children. The specific area is valid
 		// if and only if there are no protected rooms and at least one (unprotected) room in it.
 		// Also list the unprotected rooms to mark them if the decay operation will proceed.
@@ -142,7 +142,7 @@ public class MazeBuilder
 	{
 		for (IGraphNode<RoomData, DoorwayData> node : layout.nodes())
 		{
-			PartitionNode room = node.data().getPartitionNode();
+			PartitionNode<RoomData> room = node.data().getPartitionNode();
 			buildBox(world, offset, room.minCorner(), room.maxCorner(), Block.stoneBrick.blockID, 0);
 		}
 	}
@@ -152,14 +152,12 @@ public class MazeBuilder
 	{
 		RoomData room;
 		BaseDecorator decorator;
-		PartitionNode<RoomData> partition;
 		ArrayList<LinkPlan> links = new ArrayList<LinkPlan>();
 		
 		// Iterate over all rooms and apply decorators
 		for (IGraphNode<RoomData, DoorwayData> node : layout.nodes())
 		{
 			room = node.data();
-			partition = room.getPartitionNode();
 			links.addAll(room.getOutboundLinks());
 			// Protected rooms must be decorated because they have links.
 			// Otherwise, choose randomly whether to decorate.

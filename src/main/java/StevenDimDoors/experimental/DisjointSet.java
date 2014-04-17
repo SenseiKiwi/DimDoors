@@ -8,9 +8,9 @@ public class DisjointSet<T>
 	
 	private static class SetNode<P>
 	{
-		private int rank;
-		private SetNode<P> parent;
-		private P data;
+		protected int rank;
+		protected SetNode<P> parent;
+		protected P data;
 		
 		public SetNode(P data)
 		{
@@ -34,10 +34,7 @@ public class DisjointSet<T>
 			mapping.put(element, new SetNode<T>(element));
 			return true;
 		}
-		else
-		{
-			return false;
-		}
+		return false;
 	}
 	
 	private SetNode<T> findRootNode(T element)
@@ -52,10 +49,7 @@ public class DisjointSet<T>
 			node.parent = findRootNode(node.parent);
 			return node.parent;
 		}
-		else
-		{
-			return node;
-		}
+		return node;
 	}
 	
 	private SetNode<T> findRootNode(SetNode<T> node)
@@ -65,10 +59,7 @@ public class DisjointSet<T>
 			node.parent = findRootNode(node.parent);
 			return node.parent;
 		}
-		else
-		{
-			return node;
-		}
+		return node;
 	}
 	
 	public boolean mergeSets(T first, T second)
@@ -106,10 +97,7 @@ public class DisjointSet<T>
 		{
 			return root.data;
 		}
-		else
-		{
-			return null;
-		}
+		return null;
 	}
 	
 	public boolean haveSameSet(T first, T second)
@@ -121,10 +109,7 @@ public class DisjointSet<T>
 		{
 			return false;
 		}
-		else
-		{
-			return (firstRoot == secondRoot);
-		}
+		return (firstRoot == secondRoot);
 	}
 	
 	public void clear()
