@@ -5,22 +5,27 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Stack;
 
-public class SectionData
+import StevenDimDoors.mod_pocketDim.util.IWeightedItem;
+
+public class SectionData implements IWeightedItem
 {
 	// Specifies the chance of selecting a destination from protectedRooms
 	// rather than from destinationRooms (which will then become protected)
-	private static final int PROTECTED_DESTINATION_CHANCE = 4;
-	private static final int MAX_PROTECTED_DESTINATION_CHANCE = 5;
+	private static final int PROTECTED_DESTINATION_CHANCE = 3;
+	private static final int MAX_PROTECTED_DESTINATION_CHANCE = 4;
 	
 	private int capacity;
+	private ArrayList<RoomData> allRooms;
 	private ArrayList<RoomData> sourceRooms;
 	private ArrayList<RoomData> protectedRooms;
 	private ArrayList<RoomData> destinationRooms;
 	private ArrayList<LinkPlan> reservations; 
 	
-	private SectionData(ArrayList<RoomData> sourceRooms, ArrayList<RoomData> destinationRooms, int capacity)
+	private SectionData(ArrayList<RoomData> allRooms, ArrayList<RoomData> sourceRooms,
+			ArrayList<RoomData> destinationRooms, int capacity)
 	{
 		this.capacity = capacity;
+		this.allRooms = allRooms;
 		this.sourceRooms = sourceRooms;
 		this.destinationRooms = destinationRooms;
 		this.protectedRooms = new ArrayList<RoomData>();
@@ -30,6 +35,7 @@ public class SectionData
 	public static SectionData createFromCore(IGraphNode<RoomData, DoorwayData> core)
 	{
 		int capacity = 0;
+		ArrayList<RoomData> allRooms = new ArrayList<RoomData>();
 		ArrayList<RoomData> sourceRooms = new ArrayList<RoomData>();
 		ArrayList<RoomData> destinationRooms = new ArrayList<RoomData>();
 		
@@ -45,6 +51,8 @@ public class SectionData
 		while (!ordering.isEmpty())
 		{
 			current = ordering.pop();
+			currentRoom = current.data();
+			allRooms.add(currentRoom);
 			hasHoles = false;
 			
 			for (IEdge<RoomData, DoorwayData> edge : current.outbound())
@@ -70,7 +78,6 @@ public class SectionData
 			
 			if (!hasHoles)
 			{
-				currentRoom = current.data();
 				destinationRooms.add(currentRoom);
 				if (currentRoom.estimateDoorCapacity() > 0)
 				{
@@ -79,10 +86,16 @@ public class SectionData
 				}
 			}
 		}
-		return new SectionData(sourceRooms, destinationRooms, capacity);
+		return new SectionData(allRooms, sourceRooms, destinationRooms, capacity);
 	}
 	
 	public int capacity()
+	{
+		return capacity;
+	}
+	
+	@Override
+	public int getWeight()
 	{
 		return capacity;
 	}
@@ -188,5 +201,25 @@ public class SectionData
 			}
 		}
 		return destination;
+	}
+
+	public void remove()
+	{
+		// Clear out everything
+		for (RoomData room : allRooms)
+		{
+			room.remove();
+		}
+		allRooms.clear();
+		allRooms = null;
+		sourceRooms.clear();
+		sourceRooms = null;
+		protectedRooms.clear();
+		protectedRooms = null;
+		destinationRooms.clear();
+		destinationRooms = null;
+		reservations.clear();
+		reservations = null;
+		capacity = -1;
 	}
 }

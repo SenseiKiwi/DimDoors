@@ -9,6 +9,7 @@ import java.util.Stack;
 
 import net.minecraft.util.MathHelper;
 import StevenDimDoors.mod_pocketDim.Point3D;
+import StevenDimDoors.mod_pocketDim.util.WeightedRandom;
 
 public class MazeDesigner
 {
@@ -27,6 +28,7 @@ public class MazeDesigner
 		ArrayList<RoomData> rooms;
 		DirectedGraph<RoomData, DoorwayData> layout;
 		ArrayList<RoomData> cores;
+		ArrayList<SectionData> sections;
 		BoundingBox bounds;
 		
 		do
@@ -35,6 +37,7 @@ public class MazeDesigner
 			rooms = null;
 			layout = null;
 			cores = null;
+			sections = null;
 			
 			// Construct a random binary space partitioning of our maze volume
 			root = partitionRooms(MAZE_WIDTH, MAZE_HEIGHT, MAZE_LENGTH, SPLIT_COUNT, random);
@@ -54,17 +57,20 @@ public class MazeDesigner
 			
 			// Cut out random subgraphs from the adjacency graph
 			cores = createMazeSections(layout, random);
+
+			// Remove unnecessary passages through floors/ceilings and some from the walls
+			for (RoomData core : cores)
+			{
+				pruneDoorways(core.getLayoutNode(), layout, random);
+			}
+			
+			// List all sections and remove any with insufficient door capacity
+			sections = pruneSections(cores, layout);
 		}
 		while (cores.isEmpty());
 		
-		// Remove unnecessary passages through floors/ceilings and some from the walls
-		for (RoomData core : cores)
-		{
-			pruneDoorways(core.getLayoutNode(), layout, random);
-		}
-		
 		// Set up the placement of dimensional doors within the maze
-		createMazeLinks(layout, cores, random);
+		createMazeLinks(sections, random);
 		
 		// Calculate bounding box
 		bounds = calculateBounds(layout);
@@ -361,21 +367,16 @@ public class MazeDesigner
 		// that was handled in a previous step!
 		
 		// We split the maze into sections by choosing core rooms and removing
-		// rooms that are a certain number of doorways away. However, for a section
-		// to be valid, it must also have enough space for at least two doors in
-		// rooms without floor holes, or else it'll be discarded.
+		// rooms that are a certain number of doorways away.
 		
-		final int BASE_MAX_DISTANCE = 2;
-		final int MAX_DISTANCE_CHANGE = 2;
+		final int MIN_INCLUSION_DISTANCE = 2;
+		final int MAX_INCLUSION_DISTANCE = 3;
 		final int MIN_SECTION_ROOMS = 5;
-		final int MIN_SECTION_CAPACITY = 2;
 		
-		int capacity;
-		int maxDistance;
 		int nextDistance;
+		int inclusionDistance;
 		RoomData room;
 		RoomData neighbor;
-		boolean hasHoles;
 		IGraphNode<RoomData, DoorwayData> roomNode;
 		
 		ArrayList<RoomData> cores = new ArrayList<RoomData>();
@@ -402,12 +403,12 @@ public class MazeDesigner
 			if (room != null && room.getDistance() < 0)
 			{
 				// Perform a breadth-first search to tag surrounding nodes with distances
-				maxDistance = BASE_MAX_DISTANCE + random.nextInt(MAX_DISTANCE_CHANGE + 1);
+				inclusionDistance = MathHelper.getRandomIntegerInRange(random, MIN_INCLUSION_DISTANCE, MAX_INCLUSION_DISTANCE);
 				ordering.add(room);
 				room.setDistance(0);
 				section.clear();
 				
-				while (room != null && room.getDistance() <= maxDistance)
+				while (room != null && room.getDistance() <= inclusionDistance)
 				{
 					ordering.remove();
 					section.add(room);
@@ -445,30 +446,8 @@ public class MazeDesigner
 					ordering.remove().remove();
 				}
 				
-				// Now iterate over all rooms in the section. If a room doesn't have
-				// floor holes, then add its capacity to the total door capacity of
-				// the whole section. This has to be done after removing frontier
-				// rooms because those can be linked in by floor holes.
-				capacity = 0;
-				for (RoomData candidate : section)
-				{
-					hasHoles = false;
-					roomNode = candidate.getLayoutNode();
-					for (IEdge<RoomData, DoorwayData> passage : roomNode.inbound())
-					{
-						if (passage.data().axis() == DoorwayData.Y_AXIS)
-						{
-							hasHoles = true;
-						}
-					}
-					if (!hasHoles)
-					{
-						capacity += candidate.estimateDoorCapacity();
-					}
-				}
-				
 				// Check if this section contains enough rooms and capacity for doors
-				if (section.size() >= MIN_SECTION_ROOMS && capacity >= MIN_SECTION_CAPACITY)
+				if (section.size() >= MIN_SECTION_ROOMS)
 				{
 					cores.add(node.data());
 				}
@@ -605,8 +584,32 @@ public class MazeDesigner
 		}
 	}
 	
-	private static void createMazeLinks(DirectedGraph<RoomData, DoorwayData> layout,
-			ArrayList<RoomData> cores, Random random)
+	private static ArrayList<SectionData> pruneSections(ArrayList<RoomData> cores, DirectedGraph<RoomData, DoorwayData> layout)
+	{
+		// For a section to be valid, it must have enough space for at least
+		// two doors in rooms without floor holes, or else it'll be discarded.
+		
+		final int MIN_SECTION_CAPACITY = 2;
+		
+		SectionData section;
+		ArrayList<SectionData> sections = new ArrayList<SectionData>();
+
+		for (RoomData core : cores)
+		{
+			section = SectionData.createFromCore(core.getLayoutNode());
+			if (section.capacity() >= MIN_SECTION_CAPACITY)
+			{
+				sections.add(section);
+			}
+			else
+			{
+				section.remove();
+			}
+		}
+		return sections;
+	}
+	
+	private static void createMazeLinks(ArrayList<SectionData> sections, Random random)
 	{
 		// We have 4 objectives here...
 		// 1. Place the entrance to the maze
@@ -614,26 +617,19 @@ public class MazeDesigner
 		// 3. Place internal links connecting the different sections of the maze
 		// 4. Place more internal links to confuse people
 		
-		// We need to start by building up data for each section, such as their
-		// door capacities and the rooms available for placing doors.
 		int index;
 		int count;
+		int totalCapacity;
 		SectionData selection;
 		SectionData destination;
-		ArrayList<SectionData> allSections;
 		ArrayList<SectionData> usableSections;
 
 		// Check if there is only one section. Our concerns differ depending
 		// on whether there is one or more than one.
-		if (cores.size() > 1)
+		if (sections.size() > 1)
 		{	
 			// More than 1 section
-			allSections = new ArrayList<SectionData>(cores.size());
-			for (RoomData core : cores)
-			{
-				allSections.add( SectionData.createFromCore(core.getLayoutNode()) );
-			}
-			usableSections = (ArrayList<SectionData>) allSections.clone();
+			usableSections = (ArrayList<SectionData>) sections.clone();
 			
 			// Select the room in which to place the entrance.
 			// We can safely consider all sections because createMazeSections()
@@ -651,37 +647,43 @@ public class MazeDesigner
 			// Place 3 to 4 dungeon doors in random sections
 			// Remove any sections that fall under a capacity of 2.
 			count = 3 + random.nextInt(2);
+			totalCapacity = WeightedRandom.getTotalWeight(usableSections);
 			for (; count > 0 && !usableSections.isEmpty(); count--)
 			{
-				index = random.nextInt(usableSections.size());
+				index = WeightedRandom.getRandomItemIndex(random, usableSections, totalCapacity);
 				selection = usableSections.get(index);
 				selection.createDungeonLink(random);
-				if (selection.capacity() <= 1)
+				totalCapacity--;
+				if (selection.capacity() == 1)
 				{
 					usableSections.remove(index);
+					totalCapacity--;
 				}
 			}
 			
 			// The next task is to place internal links. These links must connect
 			// the different maze sections to create a strongly connected graph.
-			linkMazeSections(allSections, random);
+			linkMazeSections(sections, random);
 			
 			// Add 1 to 3 extra internal links to confuse people
 			usableSections.clear();
-			for (SectionData section : allSections)
+			totalCapacity = 0;
+			for (SectionData section : sections)
 			{
 				if (section.capacity() > 0)
 				{
 					usableSections.add(section);
+					totalCapacity += section.capacity();
 				}
 			}
 			count = 1 + random.nextInt(3);
 			for (; count > 0 && !usableSections.isEmpty(); count--)
 			{
-				index = random.nextInt(usableSections.size());
+				index = WeightedRandom.getRandomItemIndex(random, usableSections, totalCapacity);
 				selection = usableSections.get(index);
-				destination = allSections.get( random.nextInt(allSections.size()) );
+				destination = sections.get( random.nextInt(sections.size()) );
 				selection.reserveSectionLink(destination, random);
+				totalCapacity--;
 				if (selection.capacity() == 0)
 				{
 					usableSections.remove(index);
@@ -689,7 +691,7 @@ public class MazeDesigner
 			}
 			
 			// Finally, make sure to process all reservations for section links.
-			for (SectionData section : allSections)
+			for (SectionData section : sections)
 			{
 				section.processReservedLinks(random);
 			}
@@ -697,7 +699,7 @@ public class MazeDesigner
 		else
 		{
 			// Only 1 section
-			selection = SectionData.createFromCore(cores.get(0).getLayoutNode());
+			selection = sections.get(0);
 			// Place entrance door in a random room
 			selection.createEntranceLink(random);
 			// Place 3 to 4 dungeon doors or fewer, based on capacity
@@ -745,7 +747,7 @@ public class MazeDesigner
 		while (!remaining.isEmpty())
 		{
 			// Select a section from which to start a new cycle
-			index = random.nextInt(starters.size());
+			index = WeightedRandom.getRandomItemIndex(random, starters, capacity);
 			start = starters.get(index);
 			// Select the first new section in the cycle and link to it
 			current = remaining.remove(remaining.size() - 1);
