@@ -51,8 +51,8 @@ public class PartitionNode<T> extends BoundingBox
 		{
 			throw new IllegalArgumentException("The specified cutting plane is invalid.");
 		}
-		leftChild = new PartitionNode<T>(this, minCorner, new Point3D(rightStart - 1, maxCorner.getY(), maxCorner.getZ()));
-		rightChild = new PartitionNode<T>(this, new Point3D(rightStart, minCorner.getY(), minCorner.getZ()), maxCorner);
+		leftChild = new PartitionNode<T>(this, minCorner.clone(), new Point3D(rightStart - 1, maxCorner.getY(), maxCorner.getZ()));
+		rightChild = new PartitionNode<T>(this, new Point3D(rightStart, minCorner.getY(), minCorner.getZ()), maxCorner.clone());
 	}
 	
 	public void splitByY(int rightStart)
@@ -65,8 +65,8 @@ public class PartitionNode<T> extends BoundingBox
 		{
 			throw new IllegalArgumentException("The specified cutting plane is invalid.");
 		}
-		leftChild = new PartitionNode<T>(this, minCorner, new Point3D(maxCorner.getX(), rightStart - 1, maxCorner.getZ()));
-		rightChild = new PartitionNode<T>(this, new Point3D(minCorner.getX(), rightStart, minCorner.getZ()), maxCorner);
+		leftChild = new PartitionNode<T>(this, minCorner.clone(), new Point3D(maxCorner.getX(), rightStart - 1, maxCorner.getZ()));
+		rightChild = new PartitionNode<T>(this, new Point3D(minCorner.getX(), rightStart, minCorner.getZ()), maxCorner.clone());
 	}
 	
 	public void splitByZ(int rightStart)
@@ -79,8 +79,8 @@ public class PartitionNode<T> extends BoundingBox
 		{
 			throw new IllegalArgumentException("The specified cutting plane is invalid.");
 		}
-		leftChild = new PartitionNode<T>(this, minCorner, new Point3D(maxCorner.getX(), maxCorner.getY(), rightStart - 1));
-		rightChild = new PartitionNode<T>(this, new Point3D(minCorner.getX(), minCorner.getY(), rightStart), maxCorner);
+		leftChild = new PartitionNode<T>(this, minCorner.clone(), new Point3D(maxCorner.getX(), maxCorner.getY(), rightStart - 1));
+		rightChild = new PartitionNode<T>(this, new Point3D(minCorner.getX(), minCorner.getY(), rightStart), maxCorner.clone());
 	}
 	
 	public void remove()

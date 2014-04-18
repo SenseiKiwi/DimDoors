@@ -11,6 +11,11 @@ import StevenDimDoors.mod_pocketDim.tileentities.TileEntityDimDoor;
 
 public abstract class BaseDecorator
 {
+	protected static final int DOOR_FACING_NEGATIVE_X = 0;
+	protected static final int DOOR_FACING_NEGATIVE_Z = 1;
+	protected static final int DOOR_FACING_POSITIVE_X = 2;
+	protected static final int DOOR_FACING_POSITIVE_Z = 3;
+	
 	public BaseDecorator() { }
 	
 	public abstract boolean canDecorate(RoomData room);
