@@ -17,11 +17,10 @@ public class DefaultDoorDecorator extends BaseDecorator
 	}
 
 	@Override
-	public void decorate(RoomData room, World world, Point3D offset, Random random, DDProperties properties)
+	public void decorate(RoomData room, World world, Random random, DDProperties properties)
 	{
 		// TODO: This is just an improvised implementation for testing
 		Point3D corner = room.getPartitionNode().minCorner().clone();
-		corner.add(offset);
 		
 		int count = 0;
 		Point3D source = null;

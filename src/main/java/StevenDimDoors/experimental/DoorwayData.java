@@ -48,4 +48,10 @@ public class DoorwayData
 	{
 		return (maxCorner.getZ() - minCorner.getZ() + 1);
 	}
+
+	public void translate(Point3D offset)
+	{
+		minCorner.add(offset);
+		maxCorner.add(offset);
+	}
 }

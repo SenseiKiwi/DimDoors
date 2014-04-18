@@ -56,11 +56,11 @@ public class Point3D implements Serializable {
 		return this.z = z;
 	}
 
-	public void add(int x, int y, int z)
+	public void add(int dx, int dy, int dz)
 	{
-		this.x += x;
-		this.y += y;
-		this.z += z;
+		this.x += dx;
+		this.y += dy;
+		this.z += dz;
 	}
 
 	public void add(Point3D other)
@@ -70,11 +70,11 @@ public class Point3D implements Serializable {
 		this.z += other.z;
 	}
 	
-	public void subtract(int x, int y, int z)
+	public void subtract(int dx, int dy, int dz)
 	{
-		this.x -= x;
-		this.y -= y;
-		this.z -= z;
+		this.x -= dx;
+		this.y -= dy;
+		this.z -= dz;
 	}
 
 	public void subtract(Point3D other)

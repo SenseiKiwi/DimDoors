@@ -19,15 +19,12 @@ public class LinkDestinationDecorator extends BaseDecorator
 	}
 
 	@Override
-	public void decorate(RoomData room, World world, Point3D offset, Random random, DDProperties properties)
+	public void decorate(RoomData room, World world, Random random, DDProperties properties)
 	{
 		// Set the center of the room as the destination for all inbound links
 		PartitionNode<RoomData> partition = room.getPartitionNode();
 		Point3D destination = partition.minCorner().clone();
-		destination.add(
-				offset.getX() + partition.width() / 2,
-				offset.getY() + 2,
-				offset.getZ() + partition.length() / 2);
+		destination.add(partition.width() / 2, 2, partition.length() / 2);
 		
 		for (LinkPlan plan : room.getInboundLinks())
 		{

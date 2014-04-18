@@ -44,5 +44,6 @@ public class DecoratorFinder
 		decorators.add(new LinkDestinationDecorator());
 		decorators.add(new DefaultDoorDecorator());
 		decorators.add(new TorchDecorator());
+		//decorators.add(new CorridorTrapDecorator());
 	}
 }

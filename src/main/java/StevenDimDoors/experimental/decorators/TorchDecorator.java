@@ -5,10 +5,8 @@ import java.util.Random;
 import net.minecraft.block.Block;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
-
 import StevenDimDoors.experimental.PartitionNode;
 import StevenDimDoors.experimental.RoomData;
-import StevenDimDoors.mod_pocketDim.Point3D;
 import StevenDimDoors.mod_pocketDim.config.DDProperties;
 
 public class TorchDecorator extends BaseDecorator
@@ -20,13 +18,12 @@ public class TorchDecorator extends BaseDecorator
 	}
 
 	@Override
-	public void decorate(RoomData room, World world, Point3D offset, Random random, DDProperties properties)
+	public void decorate(RoomData room, World world, Random random, DDProperties properties)
 	{
 		// SenseiKiwi: Place a single random torch along the walls.
-		// We could do more complex arrangements but I feel that a single
-		// torches here and there will be a little unsettling.
-		// The walls might be broken by passages or decay, so this will
-		// require trial and error.
+		// We could do more complex arrangements but I feel that a single torches here and there will
+		// be a little unsettling. The walls might be broken by passages or decay, so this will require
+		// trial and error.
 		
 		final int MAX_ATTEMPTS = 5;
 		
@@ -34,11 +31,11 @@ public class TorchDecorator extends BaseDecorator
 		int z;
 		int attempts = 0;
 		PartitionNode<RoomData> partition = room.getPartitionNode();
-		int minX = partition.minCorner().getX() + offset.getX();
-		int minZ = partition.minCorner().getZ() + offset.getZ();
-		int maxX = partition.maxCorner().getX() + offset.getX();
-		int maxZ = partition.maxCorner().getZ() + offset.getZ();
-		int torchLevel = partition.minCorner().getY() + offset.getY() + 2;
+		int minX = partition.minCorner().getX();
+		int minZ = partition.minCorner().getZ();
+		int maxX = partition.maxCorner().getX();
+		int maxZ = partition.maxCorner().getZ();
+		int torchLevel = partition.minCorner().getY() + 2;
 		
 		for (; attempts < MAX_ATTEMPTS; attempts++)
 		{

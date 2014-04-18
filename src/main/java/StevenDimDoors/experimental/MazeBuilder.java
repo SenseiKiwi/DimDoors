@@ -47,22 +47,28 @@ public class MazeBuilder
 		System.out.println("MAX DESIGN TIME: " + (max / 1000000) + " ms");
 		System.out.println("AVERAGE DESIGN TIME: " + (average / 1000000) + " ms");*/
 		
-		
+		// Produce a design
 		MazeDesign design = MazeDesigner.generate(random);
+		
+		// Compute an offset for the design and translate it to its final coordinates
 		BoundingBox bounds = design.getBounds();
 		Point3D offset = new Point3D(x - bounds.width() / 2, y - bounds.height() - 1, z - bounds.length() / 2);
 		offset.subtract(bounds.minCorner());
+		design.translate(offset);
+		
+		// Prepare a decay operation - used by some of the building functions
 		SphereDecayOperation decay = new SphereDecayOperation(random, 0, 0, Block.stoneBrick.blockID, 2);
 		
-		buildRooms(design.getLayout(), world, offset);
-		carveDoorways(design.getLayout(), world, offset, decay, random);
-		applyRandomDestruction(design, world, offset, decay, random);
-		decorateRooms(design.getLayout(), world, offset, random, properties);
-		buildPocketWalls(bounds, world, offset, properties);
+		// Build the maze
+		buildRooms(design.getLayout(), world);
+		carveDoorways(design.getLayout(), world, decay, random);
+		applyRandomDestruction(design, world, decay, random);
+		decorateRooms(design.getLayout(), world, random, properties);
+		buildPocketWalls(bounds, world, properties);
 	}
 	
 	private static void applyRandomDestruction(MazeDesign design, World world,
-			Point3D offset, SphereDecayOperation decay, Random random)
+			SphereDecayOperation decay, Random random)
 	{
 		final int DECAY_BOX_SIZE = 7;
 		final int DECAY_OPERATIONS = 5 + random.nextInt(5);
@@ -72,22 +78,22 @@ public class MazeBuilder
 		int successes = 0;
 		int attempts = 0;
 		BoundingBox bounds = design.getBounds();
+		Point3D corner = bounds.minCorner();
 		PartitionNode<RoomData> root = design.getRootPartition();
 		
 		for (; successes < DECAY_OPERATIONS && attempts < DECAY_ATTEMPTS; attempts++)
 		{
 			// Select the coordinates at which to apply the decay operation
-			x = random.nextInt(bounds.width()) - DECAY_BOX_SIZE / 2;
-			y = random.nextInt(bounds.height()) - DECAY_BOX_SIZE / 2;
-			z = random.nextInt(bounds.length()) - DECAY_BOX_SIZE / 2;
+			x = random.nextInt(bounds.width()) - DECAY_BOX_SIZE / 2 + corner.getX();
+			y = random.nextInt(bounds.height()) - DECAY_BOX_SIZE / 2 + corner.getY();
+			z = random.nextInt(bounds.length()) - DECAY_BOX_SIZE / 2 + corner.getZ();
 			
 			// Check that the decay operation would not impact any protected areas
 			// and mark the affected areas as decayed
 			if (markDecayArea(x, y, z, DECAY_BOX_SIZE, root))
 			{
 				// Apply decay
-				decay.apply(world, offset.getX() + x, offset.getY() + y, offset.getZ() + z,
-						DECAY_BOX_SIZE, DECAY_BOX_SIZE, DECAY_BOX_SIZE);
+				decay.apply(world, x, y, z, DECAY_BOX_SIZE, DECAY_BOX_SIZE, DECAY_BOX_SIZE);
 				successes++;
 			}
 		}
@@ -138,17 +144,17 @@ public class MazeBuilder
 		return !targets.isEmpty();
 	}
 
-	private static void buildRooms(DirectedGraph<RoomData, DoorwayData> layout, World world, Point3D offset)
+	private static void buildRooms(DirectedGraph<RoomData, DoorwayData> layout, World world)
 	{
 		for (IGraphNode<RoomData, DoorwayData> node : layout.nodes())
 		{
 			PartitionNode<RoomData> room = node.data().getPartitionNode();
-			buildBox(world, offset, room.minCorner(), room.maxCorner(), Block.stoneBrick.blockID, 0);
+			buildBox(world, room.minCorner(), room.maxCorner(), Block.stoneBrick.blockID, 0);
 		}
 	}
 	
 	private static void decorateRooms(DirectedGraph<RoomData, DoorwayData> layout,
-			World world, Point3D offset, Random random, DDProperties properties)
+			World world, Random random, DDProperties properties)
 	{
 		RoomData room;
 		BaseDecorator decorator;
@@ -166,7 +172,7 @@ public class MazeBuilder
 				decorator = DecoratorFinder.find(room, random);
 				if (decorator != null)
 				{
-					decorator.decorate(room, world, offset, random, properties);
+					decorator.decorate(room, world, random, properties);
 				}
 			}
 		}
@@ -207,7 +213,7 @@ public class MazeBuilder
 	}
 	
 	private static void carveDoorways(DirectedGraph<RoomData, DoorwayData> layout, World world,
-			Point3D offset, SphereDecayOperation decay, Random random)
+			SphereDecayOperation decay, Random random)
 	{	
 		char axis;
 		Point3D lower;
@@ -221,8 +227,8 @@ public class MazeBuilder
 				doorway = passage.data();
 				axis = doorway.axis();
 				lower = doorway.minCorner();
-				carveDoorway(world, axis, offset.getX() + lower.getX(), offset.getY() + lower.getY(),
-						offset.getZ() + lower.getZ(), doorway.width(), doorway.height(), doorway.length(),
+				carveDoorway(world, axis, lower.getX(), lower.getY(), lower.getZ(),
+						doorway.width(), doorway.height(), doorway.length(),
 						decay, random);
 				
 				// If this is a vertical passage, then mark the upper room as decayed
@@ -341,28 +347,30 @@ public class MazeBuilder
 		setBlockDirectly(world, x, y + 1, z, 0, 0);
 	}
 	
-	private static void buildPocketWalls(BoundingBox bounds, World world, Point3D offset, DDProperties properties)
+	private static void buildPocketWalls(BoundingBox bounds, World world, DDProperties properties)
 	{
 		// Build the inner Fabric of Reality box
-		Point3D minCorner = new Point3D(-POCKET_WALL_GAP - 1, -POCKET_WALL_GAP - 1, -POCKET_WALL_GAP - 1);
-		Point3D maxCorner = new Point3D(bounds.width() + POCKET_WALL_GAP, bounds.height() + POCKET_WALL_GAP, bounds.length() + POCKET_WALL_GAP);
-		buildBox(world, offset, minCorner, maxCorner, properties.FabricBlockID, 0);
+		Point3D minCorner = bounds.minCorner().clone();
+		Point3D maxCorner = bounds.maxCorner().clone();
+		minCorner.add(-POCKET_WALL_GAP - 1, -POCKET_WALL_GAP - 1, -POCKET_WALL_GAP - 1);
+		maxCorner.add(POCKET_WALL_GAP + 1, POCKET_WALL_GAP + 1, POCKET_WALL_GAP + 1);
+		buildBox(world, minCorner, maxCorner, properties.FabricBlockID, 0);
 		
 		// Build the outer Eternal Fabric box
 		minCorner.add(-1, -1, -1);
 		maxCorner.add(1, 1, 1);
-		buildBox(world, offset, minCorner, maxCorner, properties.PermaFabricBlockID, 0);
+		buildBox(world, minCorner, maxCorner, properties.PermaFabricBlockID, 0);
 	}
 	
-	private static void buildBox(World world, Point3D offset, Point3D minCorner, Point3D maxCorner, int blockID, int metadata)
+	private static void buildBox(World world, Point3D minCorner, Point3D maxCorner, int blockID, int metadata)
 	{
-		int minX = minCorner.getX() + offset.getX();
-		int minY = minCorner.getY() + offset.getY();
-		int minZ = minCorner.getZ() + offset.getZ();
+		int minX = minCorner.getX();
+		int minY = minCorner.getY();
+		int minZ = minCorner.getZ();
 		
-		int maxX = maxCorner.getX() + offset.getX();
-		int maxY = maxCorner.getY() + offset.getY();
-		int maxZ = maxCorner.getZ() + offset.getZ();
+		int maxX = maxCorner.getX();
+		int maxY = maxCorner.getY();
+		int maxZ = maxCorner.getZ();
 		
 		int x, y, z;
 		

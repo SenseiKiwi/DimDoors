@@ -1,5 +1,7 @@
 package StevenDimDoors.experimental;
 
+import StevenDimDoors.mod_pocketDim.Point3D;
+
 
 public class MazeDesign
 {
@@ -27,5 +29,20 @@ public class MazeDesign
 	public BoundingBox getBounds()
 	{
 		return bounds;
+	}
+
+	public void translate(Point3D offset)
+	{
+		// Translate all rooms and doorways by a given offset
+		for (IGraphNode<RoomData, DoorwayData> node : layout.nodes())
+		{
+			node.data().getPartitionNode().translate(offset);
+			for (IEdge<RoomData, DoorwayData> edge : node.outbound())
+			{
+				edge.data().translate(offset);
+			}
+		}
+		// Translate the structure bounds
+		bounds.translate(offset);
 	}
 }

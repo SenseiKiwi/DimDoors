@@ -66,4 +66,10 @@ public class BoundingBox
 		
 		return xi && yi && zi;
 	}
+
+	public void translate(Point3D offset)
+	{
+		minCorner.add(offset);
+		maxCorner.add(offset);
+	}
 }
