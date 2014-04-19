@@ -6,7 +6,7 @@ import net.minecraft.world.World;
 import StevenDimDoors.experimental.RoomData;
 import StevenDimDoors.mod_pocketDim.config.DDProperties;
 
-public class SpreadDoorDecorator extends BaseDecorator
+public class DecoratorSpreadDoors extends BaseDecorator
 {
 	@Override
 	public boolean canDecorate(RoomData room)

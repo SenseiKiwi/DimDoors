@@ -41,14 +41,14 @@ public class DecoratorFinder
 	{
 		// List all the decorators we have
 		decorators = new ArrayList<BaseDecorator>();
-		decorators.add(new LinkDestinationDecorator());
-		decorators.add(new CentralDoorDecorator());
-		decorators.add(new TorchDecorator());
+		decorators.add(new DecoratorLinkDestination());
+		decorators.add(new DecoratorCentralDoor());
+		decorators.add(new DecoratorTorch());
 		//decorators.add(new CorridorTrapDecorator());
-		decorators.add(new DefaultDoorDecorator());
-		decorators.add(new CentralDoorDecorator());
-		decorators.add(new PillarDoorDecorator());
-		//decorators.add(new SideDoorDecorator());
+		decorators.add(new DecoratorDefaultDoor());
+		decorators.add(new DecoratorCentralDoor());
+		decorators.add(new DecoratorPillarDoors());
+		decorators.add(new DecoratorSideDoors());
 		//decorators.add(new SpreadDoorDecorator());
 	}
 }

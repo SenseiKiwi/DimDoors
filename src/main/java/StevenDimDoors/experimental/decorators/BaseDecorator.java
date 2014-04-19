@@ -21,10 +21,10 @@ public abstract class BaseDecorator
 	public abstract boolean canDecorate(RoomData room);
 	public abstract void decorate(RoomData room, World world, Random random, DDProperties properties);
 	
-	protected static void placeDimensionalDoor(World world, int x, int y, int z, int orientation, boolean disablePair)
+	protected static void placeDimensionalDoor(World world, int x, int y, int z, int orientation, boolean isInternal)
 	{
 		// Place a dimensional door but prevent it from generating a pair at its destination
 		ItemDoor.placeDoorBlock(world, x, y, z, orientation, mod_pocketDim.dimensionalDoor);
-		((TileEntityDimDoor) world.getBlockTileEntity(x, y + 1, z)).hasGennedPair = disablePair;
+		((TileEntityDimDoor) world.getBlockTileEntity(x, y + 1, z)).hasGennedPair = isInternal;
 	}
 }

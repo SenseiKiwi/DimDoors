@@ -11,7 +11,7 @@ import StevenDimDoors.mod_pocketDim.Point3D;
 import StevenDimDoors.mod_pocketDim.config.DDProperties;
 import StevenDimDoors.mod_pocketDim.util.Shuffler;
 
-public class PillarDoorDecorator extends BaseDecorator
+public class DecoratorPillarDoors extends BaseDecorator
 {
 	@Override
 	public boolean canDecorate(RoomData room)
