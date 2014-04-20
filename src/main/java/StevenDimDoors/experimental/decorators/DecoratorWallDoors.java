@@ -121,11 +121,11 @@ public class DecoratorWallDoors extends DecoratorDoors
 				break;
 			case DOOR_FACING_POSITIVE_Z:
 				z++;
-				x += width - (length - 10) / 3 - 3;
+				x += width - (width - 10) / 3 - 3;
 				break;
 			case DOOR_FACING_NEGATIVE_Z:
 				z += length - 2;
-				x += width - (length - 10) / 3 - 3;
+				x += width - (width - 10) / 3 - 3;
 				break;
 		}
 		

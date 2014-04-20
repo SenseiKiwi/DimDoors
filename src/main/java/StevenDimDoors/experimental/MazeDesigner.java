@@ -630,6 +630,15 @@ public class MazeDesigner
 		// 3. Place internal links connecting the different sections of the maze
 		// 4. Place more internal links to confuse people
 		
+		// We assume that all sections have a minimum capacity of 2. Time to check...
+		for (SectionData section : sections)
+		{
+			if (section.capacity() < 2)
+			{
+				throw new IllegalArgumentException("All sections must have a capacity of at least 2.");
+			}
+		}
+		
 		int index;
 		int count;
 		int totalCapacity;
@@ -731,6 +740,16 @@ public class MazeDesigner
 		// This algorithm constructs links sections together using Dimensional Doors
 		// to create a random strongly connected graph. It takes into account capacity
 		// constraints as well. We assume that all sections have at least 1 door capacity.
+		
+		// Sanity checking
+		for (SectionData section : sections)
+		{
+			if (section.capacity() < 1)
+			{
+				throw new IllegalArgumentException("All sections must have a capacity of at least 1.");
+			}
+		}
+		
 		final int EXTENSION_CHANCE = 2;
 		final int MAX_EXTENSION_CHANCE = 3;
 		
@@ -761,6 +780,16 @@ public class MazeDesigner
 		// Repeat until all sections are connected
 		while (!remaining.isEmpty())
 		{
+			// DEBUG CODE!!!
+			for (SectionData section : starters)
+			{
+				if (section.capacity() == 0)
+				{
+					throw new IllegalStateException("THIS SHOULDN'T BE POSSIBLE! ;-;");
+				}
+			}
+			// END OF DEBUG CODE!!!
+			
 			// Select a section from which to start a new cycle
 			index = WeightedRandom.getRandomItemIndex(random, starters, capacity);
 			start = starters.get(index);
@@ -803,6 +832,7 @@ public class MazeDesigner
 					starters.add(section);
 				}
 			}
+			attached.clear();
 		}
 		
 		// Done! At this point, all sections are connected.
