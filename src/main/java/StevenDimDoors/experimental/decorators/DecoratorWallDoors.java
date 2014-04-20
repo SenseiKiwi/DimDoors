@@ -72,27 +72,27 @@ public class DecoratorWallDoors extends DecoratorDoors
 		{
 			case DOOR_FACING_POSITIVE_X:
 				x++;
-				z += (length - 6) / 2;
+				z += (length - 10) / 3 + 2;
 				dz = 1;
 				break;
 			case DOOR_FACING_NEGATIVE_X:
 				x += width - 2;
-				z += (length - 6) / 2;
+				z += (length - 10) / 3 + 2;
 				dz = 1;
 				break;
 			case DOOR_FACING_POSITIVE_Z:
 				z++;
-				x += (width - 6) / 2;
+				x += (width - 10) / 3 + 2;
 				dx = 1;
 				break;
 			case DOOR_FACING_NEGATIVE_Z:
 				z += length - 2;
-				x += (width - 6) / 2;
+				x += (width - 10) / 3 + 2;
 				dx = 1;
 				break;
 		}
 		
-		// Build the frame for the doors and the doors
+		// Build the first door and the frame around it
 		world.setBlock(x, y + 0, z, Block.stoneBrick.blockID, 0, 0);
 		world.setBlock(x, y + 1, z, Block.stoneBrick.blockID, 0, 0);
 		world.setBlock(x, y + 2, z, Block.stoneBrick.blockID, 3, 0);
@@ -105,20 +105,43 @@ public class DecoratorWallDoors extends DecoratorDoors
 		world.setBlock(x, y + 0, z, Block.stoneBrick.blockID, 0, 0);
 		world.setBlock(x, y + 1, z, Block.stoneBrick.blockID, 0, 0);
 		world.setBlock(x, y + 2, z, Block.stoneBrick.blockID, 3, 0);
-		x += dx;
-		z += dz;
+		
+		// Determine the placement of the second door
+		x = partition.minCorner().getX();
+		z = partition.minCorner().getZ();
+		switch (orientation)
+		{
+			case DOOR_FACING_POSITIVE_X:
+				x++;
+				z += length - (length - 10) / 3 - 3;
+				break;
+			case DOOR_FACING_NEGATIVE_X:
+				x += width - 2;
+				z += length - (length - 10) / 3 - 3;
+				break;
+			case DOOR_FACING_POSITIVE_Z:
+				z++;
+				x += width - (length - 10) / 3 - 3;
+				break;
+			case DOOR_FACING_NEGATIVE_Z:
+				z += length - 2;
+				x += width - (length - 10) / 3 - 3;
+				break;
+		}
+		
+		// Build the second door and frame around it
 		world.setBlock(x, y + 0, z, Block.stoneBrick.blockID, 0, 0);
 		world.setBlock(x, y + 1, z, Block.stoneBrick.blockID, 0, 0);
 		world.setBlock(x, y + 2, z, Block.stoneBrick.blockID, 3, 0);
-		x += dx;
-		z += dz;
+		x -= dx;
+		z -= dz;
 		world.setBlock(x, y + 2, z, Block.stoneBrick.blockID, 0, 0);
 		if (room.getOutboundLinks().size() > 1)
 		{
 			super.placeDimensionalDoor(world, x, y, z, orientation, room.getOutboundLinks().get(1));
 		}
-		x += dx;
-		z += dz;
+		x -= dx;
+		z -= dz;
 		world.setBlock(x, y + 0, z, Block.stoneBrick.blockID, 0, 0);
 		world.setBlock(x, y + 1, z, Block.stoneBrick.blockID, 0, 0);
 		world.setBlock(x, y + 2, z, Block.stoneBrick.blockID, 3, 0);

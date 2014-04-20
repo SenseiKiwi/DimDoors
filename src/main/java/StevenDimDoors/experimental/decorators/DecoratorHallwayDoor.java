@@ -13,9 +13,15 @@ public class DecoratorHallwayDoor extends DecoratorDoors
 	@Override
 	public int getDoorCapacity(RoomData room)
 	{
+		if (!room.isTopSideClosed())
+		{
+			return 0;
+		}
+		
 		PartitionNode<RoomData> partition = room.getPartitionNode();
 		int width = partition.width();
 		int length = partition.length();
+		
 		if (width == 3 && length > 3 && room.isEastSideClosed() && room.isWestSideClosed() &&
 				(room.isNorthSideClosed() || room.isSouthSideClosed()))
 		{
