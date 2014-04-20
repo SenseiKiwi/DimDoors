@@ -7,24 +7,22 @@ import net.minecraft.world.World;
 import StevenDimDoors.experimental.LinkPlan;
 import StevenDimDoors.experimental.PartitionNode;
 import StevenDimDoors.experimental.RoomData;
-import StevenDimDoors.mod_pocketDim.Point3D;
 import StevenDimDoors.mod_pocketDim.config.DDProperties;
 import StevenDimDoors.mod_pocketDim.util.Shuffler;
 
-public class DecoratorPillarDoors extends BaseDecorator
+public class DecoratorPillarDoors extends DecoratorDoors
 {
 	@Override
-	public boolean canDecorate(RoomData room)
+	public int getDoorCapacity(RoomData room)
 	{
 		PartitionNode<RoomData> partition = room.getPartitionNode();
 		int width = partition.width();
 		int length = partition.length();
-		return (room.isProtected() && width >= 7 && length >= 7 &&
-			(width & 1) == 1 && (length & 1) == 1);
+		return (width >= 7 && length >= 7 && (width & 1) == 1 && (length & 1) == 1) ? 4 : 0;
 	}
 
 	@Override
-	public void decorate(RoomData room, World world, Random random, DDProperties properties)
+	protected void decorateInternal(RoomData room, World world, Random random, DDProperties properties)
 	{
 		// Calculate the center point around which to place doors
 		PartitionNode<RoomData> partition = room.getPartitionNode();
@@ -57,8 +55,7 @@ public class DecoratorPillarDoors extends BaseDecorator
 				dz = -1;
 				break;
 			}
-			super.placeDimensionalDoor(world, centerX + dx, centerY, centerZ + dz, orientation, outgoing.isInternal());
-			outgoing.setSourcePoint(new Point3D(centerX + dx, centerY + 1, centerZ + dz));
+			super.placeDimensionalDoor(world, centerX + dx, centerY, centerZ + dz, orientation, outgoing);
 			count++;
 		}
 		
@@ -74,30 +71,6 @@ public class DecoratorPillarDoors extends BaseDecorator
 		world.setBlock(centerX + 1, centerY + 1, centerZ - 1, Block.stoneBrick.blockID, 0, 0);
 		world.setBlock(centerX + 1, centerY + 1, centerZ + 1, Block.stoneBrick.blockID, 0, 0);
 		world.setBlock(centerX, centerY + 1, centerZ, Block.stoneBrick.blockID, 0, 0);
-		
-		// Set up destinations for inbound links
-		// We will randomly select from the positions of the doors placed
-		for (LinkPlan incoming : room.getInboundLinks())
-		{
-			dx = 0;
-			dz = 0;
-			switch (directions[random.nextInt(count)])
-			{
-			case DOOR_FACING_POSITIVE_X:
-				dx = 1;
-				break;
-			case DOOR_FACING_NEGATIVE_X:
-				dx = -1;
-				break;
-			case DOOR_FACING_POSITIVE_Z:
-				dz = 1;
-				break;
-			case DOOR_FACING_NEGATIVE_Z:
-				dz = -1;
-				break;
-			}
-			incoming.setDestinationPoint(new Point3D(centerX + dx, centerY + 1, centerZ + dz));
-		}
 		
 		// Build a pillar above the doors if there's empty space
 		if (partition.height() > 4)

@@ -9,7 +9,7 @@ import StevenDimDoors.experimental.PartitionNode;
 import StevenDimDoors.experimental.RoomData;
 import StevenDimDoors.mod_pocketDim.config.DDProperties;
 
-public class DecoratorTorch extends BaseDecorator
+public class DecoratorTorch extends DecoratorBase
 {
 	@Override
 	public boolean canDecorate(RoomData room)

@@ -5,9 +5,9 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
-import java.util.Stack;
 
 import net.minecraft.util.MathHelper;
+import StevenDimDoors.experimental.decorators.DecoratorDoors;
 import StevenDimDoors.mod_pocketDim.Point3D;
 import StevenDimDoors.mod_pocketDim.util.WeightedRandom;
 
@@ -22,21 +22,23 @@ public class MazeDesigner
 	
 	private MazeDesigner() { }
 	
-	public static MazeDesign generate(Random random)
+	public static MazeDesign generate(Random random, Iterable<? extends DecoratorDoors> decorators)
 	{
-		PartitionNode<RoomData> root;
-		ArrayList<RoomData> rooms;
-		DirectedGraph<RoomData, DoorwayData> layout;
-		ArrayList<RoomData> cores;
-		ArrayList<SectionData> sections;
-		BoundingBox bounds;
+		final int MAX_ATTEMPTS = 3;
 		
-		do
+		PartitionNode<RoomData> root = null;
+		ArrayList<RoomData> rooms = null;
+		DirectedGraph<RoomData, DoorwayData> layout = null;
+		ArrayList<ArrayList<RoomData>> groups = null;
+		ArrayList<SectionData> sections = null;
+		BoundingBox bounds = null;
+		
+		boolean ready = false;
+		for (int attempts = 0; !ready && attempts < MAX_ATTEMPTS; attempts++)
 		{
 			root = null;
 			rooms = null;
 			layout = null;
-			cores = null;
 			sections = null;
 			
 			// Construct a random binary space partitioning of our maze volume
@@ -56,18 +58,25 @@ public class MazeDesigner
 			layout = createRoomGraph(root, rooms, random);
 			
 			// Cut out random subgraphs from the adjacency graph
-			cores = createMazeSections(layout, random);
+			groups = createMazeSections(layout, random);
 
 			// Remove unnecessary passages through floors/ceilings and some from the walls
-			for (RoomData core : cores)
+			for (ArrayList<RoomData> group : groups)
 			{
-				pruneDoorways(core.getLayoutNode(), layout, random);
+				pruneDoorways(group, layout, random);
 			}
 			
+			// Set the max door capacity for each room
+			setDoorCapacities(layout, decorators);
+			
 			// List all sections and remove any with insufficient door capacity
-			sections = pruneSections(cores, layout);
+			sections = pruneSections(groups, layout);
+			ready = !sections.isEmpty();
 		}
-		while (cores.isEmpty());
+		if (!ready)
+		{
+			throw new IllegalStateException("Failed to generate a maze after several attempts.");
+		}
 		
 		// Set up the placement of dimensional doors within the maze
 		createMazeLinks(sections, random);
@@ -360,7 +369,7 @@ public class MazeDesigner
 		//Done!
 	}
 	
-	private static ArrayList<RoomData> createMazeSections(DirectedGraph<RoomData, DoorwayData> layout, Random random)
+	private static ArrayList<ArrayList<RoomData>> createMazeSections(DirectedGraph<RoomData, DoorwayData> layout, Random random)
 	{
 		// The randomness of the sections generated here hinges on
 		// the nodes in the graph being in a random order. We assume
@@ -377,13 +386,12 @@ public class MazeDesigner
 		int inclusionDistance;
 		RoomData room;
 		RoomData neighbor;
+		ArrayList<RoomData> section;
 		IGraphNode<RoomData, DoorwayData> roomNode;
 		
-		ArrayList<RoomData> cores = new ArrayList<RoomData>();
-		ArrayList<RoomData> section = new ArrayList<RoomData>();
-		ArrayList<IGraphNode<RoomData, DoorwayData>> nodes = new ArrayList<IGraphNode<RoomData, DoorwayData>>(layout.nodeCount());
-		
 		Queue<RoomData> ordering = new LinkedList<RoomData>();
+		ArrayList<ArrayList<RoomData>> sections = new ArrayList<ArrayList<RoomData>>();
+		ArrayList<IGraphNode<RoomData, DoorwayData>> nodes = new ArrayList<IGraphNode<RoomData, DoorwayData>>(layout.nodeCount());
 		
 		// List all graph nodes so that we can iterate over this list instead
 		// of using the graph's iterator. That avoids the risk of breaking
@@ -404,9 +412,9 @@ public class MazeDesigner
 			{
 				// Perform a breadth-first search to tag surrounding nodes with distances
 				inclusionDistance = MathHelper.getRandomIntegerInRange(random, MIN_INCLUSION_DISTANCE, MAX_INCLUSION_DISTANCE);
-				ordering.add(room);
+				section = new ArrayList<RoomData>();
 				room.setDistance(0);
-				section.clear();
+				ordering.add(room);
 				
 				while (room != null && room.getDistance() <= inclusionDistance)
 				{
@@ -449,7 +457,7 @@ public class MazeDesigner
 				// Check if this section contains enough rooms and capacity for doors
 				if (section.size() >= MIN_SECTION_ROOMS)
 				{
-					cores.add(node.data());
+					sections.add(section);
 				}
 				else
 				{
@@ -461,10 +469,10 @@ public class MazeDesigner
 				}
 			}
 		}
-		return cores;
+		return sections;
 	}
 	
-	private static void pruneDoorways(IGraphNode<RoomData, DoorwayData> core,
+	private static void pruneDoorways(ArrayList<RoomData> group,
 			DirectedGraph<RoomData, DoorwayData> layout, Random random)
 	{
 		// We receive a node for one of the rooms in a section of the maze
@@ -472,8 +480,8 @@ public class MazeDesigner
 		// still allowing any room to be reachable from any other room.
 		// In technical terms, we receive a node from a connected subgraph
 		// and we need to remove as many Y_AXIS-type edges as possible while
-		// preserving connectedness. We also want to randomly remove some of
-		// the other doorways without breaking connectedness.
+		// preserving connectivity. We also want to randomly remove some of
+		// the other doorways without breaking connectivity.
 		
 		// An efficient solution is to assign nodes to disjoint sets based
 		// on their components, ignoring all Y_AXIS edges, then iterate over
@@ -483,43 +491,22 @@ public class MazeDesigner
 		// idea applies for the other doorways, plus some randomness.
 		
 		// First, list all nodes in the subgraph
-		IGraphNode<RoomData, DoorwayData> current;
-		IGraphNode<RoomData, DoorwayData> neighbor;
+		IGraphNode<RoomData, DoorwayData> layoutNode;
+		ArrayList<IGraphNode<RoomData, DoorwayData>> subgraph = new ArrayList<IGraphNode<RoomData, DoorwayData>>( group.size() );
+		DisjointSet<IGraphNode<RoomData, DoorwayData>> components = new DisjointSet<IGraphNode<RoomData, DoorwayData>>( 2 * group.size() );
 		
-		Stack<IGraphNode<RoomData, DoorwayData>> ordering = new Stack<IGraphNode<RoomData, DoorwayData>>();
-		ArrayList<IGraphNode<RoomData, DoorwayData>> subgraph = new ArrayList<IGraphNode<RoomData, DoorwayData>>(64);
-		DisjointSet<IGraphNode<RoomData, DoorwayData>> components = new DisjointSet<IGraphNode<RoomData, DoorwayData>>(128);
-		
-		ordering.add(core);
-		components.makeSet(core);
-		while (!ordering.isEmpty())
+		for (RoomData room : group)
 		{
-			current = ordering.pop();
-			subgraph.add(current);
-			
-			for (IEdge<RoomData, DoorwayData> edge : current.inbound())
-			{
-				neighbor = edge.head();
-				if (components.makeSet(neighbor))
-				{
-					ordering.add(neighbor);
-				}
-			}
-			for (IEdge<RoomData, DoorwayData> edge : current.outbound())
-			{
-				neighbor = edge.tail();
-				if (components.makeSet(neighbor))
-				{
-					ordering.add(neighbor);
-				}
-			}
+			layoutNode = room.getLayoutNode();
+			subgraph.add(layoutNode);
+			components.makeSet(layoutNode);
 		}
 		
 		// Now iterate over the list of nodes and merge their sets based on
 		// being connected by X_AXIS or Z_AXIS doorways. We only have to look
 		// at outbound edges since inbound edges mirror them. List any Y_AXIS
 		// doorways we come across to consider removing them later, depending
-		// on their impact on connectedness.
+		// on their impact on connectivity.
 		ArrayList<IEdge<RoomData, DoorwayData>> targets =
 				new ArrayList<IEdge<RoomData, DoorwayData>>();
 		
@@ -547,7 +534,6 @@ public class MazeDesigner
 			if (!components.mergeSets(passage.head(), passage.tail()))
 			{
 				layout.removeEdge(passage);
-				
 			}
 		}
 		
@@ -584,7 +570,34 @@ public class MazeDesigner
 		}
 	}
 	
-	private static ArrayList<SectionData> pruneSections(ArrayList<RoomData> cores, DirectedGraph<RoomData, DoorwayData> layout)
+	private static void setDoorCapacities(DirectedGraph<RoomData, DoorwayData> layout,
+			Iterable<? extends DecoratorDoors> decorators)
+	{
+		int capacity;
+		int maxCapacity;
+		RoomData room;
+		for (IGraphNode<RoomData, DoorwayData> node : layout.nodes())
+		{
+			room = node.data();
+			room.cacheSideFlags();
+			maxCapacity = 0;
+			
+			// Only rooms with closed bottoms may have doors
+			if (room.isBottomSideClosed())
+			{
+				for (DecoratorDoors decorator : decorators)
+				{
+					capacity = decorator.getDoorCapacity(room);
+					if (capacity > maxCapacity)
+						maxCapacity = capacity;
+				}
+			}
+			room.setMaxDoorCapacity(maxCapacity);
+		}
+	}
+	
+	private static ArrayList<SectionData> pruneSections(ArrayList<ArrayList<RoomData>> groups,
+			DirectedGraph<RoomData, DoorwayData> layout)
 	{
 		// For a section to be valid, it must have enough space for at least
 		// two doors in rooms without floor holes, or else it'll be discarded.
@@ -594,9 +607,9 @@ public class MazeDesigner
 		SectionData section;
 		ArrayList<SectionData> sections = new ArrayList<SectionData>();
 
-		for (RoomData core : cores)
+		for (ArrayList<RoomData> group : groups)
 		{
-			section = SectionData.createFromCore(core.getLayoutNode());
+			section = SectionData.createFromList(group);
 			if (section.capacity() >= MIN_SECTION_CAPACITY)
 			{
 				sections.add(section);
@@ -636,6 +649,7 @@ public class MazeDesigner
 			// guarantees that each one has at least the capacity for 2 doors.
 			// Remove the selected section if it falls below a capacity of 2
 			// since we need to leave at least 1 capacity for section linking.
+			/*
 			index = random.nextInt(usableSections.size());
 			selection = usableSections.get(index);
 			selection.createEntranceLink(random);
@@ -643,6 +657,7 @@ public class MazeDesigner
 			{
 				usableSections.remove(index);
 			}
+			*/
 			
 			// Place 3 to 4 dungeon doors in random sections
 			// Remove any sections that fall under a capacity of 2.
@@ -701,7 +716,7 @@ public class MazeDesigner
 			// Only 1 section
 			selection = sections.get(0);
 			// Place entrance door in a random room
-			selection.createEntranceLink(random);
+			//selection.createEntranceLink(random);
 			// Place 3 to 4 dungeon doors or fewer, based on capacity
 			count = Math.min(3 + random.nextInt(2), selection.capacity());
 			for (; count > 0; count--)

@@ -15,6 +15,12 @@ public class RoomData
 	private int capacity;
 	private int distance;
 	private boolean decayed;
+	private boolean northClosed;
+	private boolean southClosed;
+	private boolean eastClosed;
+	private boolean westClosed;
+	private boolean bottomClosed;
+	private boolean topClosed;
 	private PartitionNode<RoomData> partitionNode;
 	private ArrayList<LinkPlan> inboundLinks;
 	private ArrayList<LinkPlan> outboundLinks;
@@ -31,6 +37,12 @@ public class RoomData
 		this.distance = -1;
 		this.capacity = -1;
 		this.decayed = false;
+		this.northClosed = false;
+		this.southClosed = false;
+		this.eastClosed = false;
+		this.westClosed = false;
+		this.topClosed = false;
+		this.bottomClosed = false;
 		partitionNode.setData(this);
 	}
 	
@@ -110,25 +122,99 @@ public class RoomData
 		inboundLinks = null;
 		outboundLinks = null;
 	}
-
-	public int estimateDoorCapacity()
+	
+	public int getMaxDoorCapacity()
 	{
-		if (capacity >= 0)
-			return capacity;
-		
-		int cellsX = (partitionNode.width() - 2) / 3;
-		int cellsZ = (partitionNode.length() - 2) / 3;
-		capacity = Math.min(cellsX * cellsZ, 3);
 		return capacity;
+	}
+	
+	public void setMaxDoorCapacity(int value)
+	{
+		this.capacity = value;
 	}
 	
 	public int getRemainingDoorCapacity()
 	{
-		return (estimateDoorCapacity() - outboundLinks.size());
+		return (capacity - outboundLinks.size());
 	}
 	
 	public boolean isProtected()
 	{
 		return !inboundLinks.isEmpty() || !outboundLinks.isEmpty();
+	}
+	
+	public boolean hasDoors()
+	{
+		return !outboundLinks.isEmpty();
+	}
+	
+	public void cacheSideFlags()
+	{
+		northClosed = true;
+		southClosed = true;
+		eastClosed = true;
+		westClosed = true;
+		topClosed = true;
+		bottomClosed = true;
+		for (IEdge<RoomData, DoorwayData> passage : layoutNode.inbound())
+		{
+			switch (passage.data().axis())
+			{
+			case DoorwayData.X_AXIS:
+				westClosed = false;
+				break;
+			case DoorwayData.Z_AXIS:
+				northClosed = false;
+				break;
+			case DoorwayData.Y_AXIS:
+				bottomClosed = false;
+				break;
+			}
+		}
+		for (IEdge<RoomData, DoorwayData> passage : layoutNode.outbound())
+		{
+			switch (passage.data().axis())
+			{
+			case DoorwayData.X_AXIS:
+				eastClosed = false;
+				break;
+			case DoorwayData.Z_AXIS:
+				southClosed = false;
+				break;
+			case DoorwayData.Y_AXIS:
+				topClosed = false;
+				break;
+			}
+		}
+	}
+	
+	public boolean isNorthSideClosed()
+	{
+		return northClosed;
+	}
+	
+	public boolean isSouthSideClosed()
+	{
+		return southClosed;
+	}
+	
+	public boolean isEastSideClosed()
+	{
+		return eastClosed;
+	}
+	
+	public boolean isWestSideClosed()
+	{
+		return westClosed;
+	}
+	
+	public boolean isTopSideClosed()
+	{
+		return topClosed;
+	}
+	
+	public boolean isBottomSideClosed()
+	{
+		return bottomClosed;
 	}
 }

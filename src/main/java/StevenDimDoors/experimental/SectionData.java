@@ -1,9 +1,7 @@
 package StevenDimDoors.experimental;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Random;
-import java.util.Stack;
 
 import StevenDimDoors.mod_pocketDim.util.IWeightedItem;
 
@@ -32,61 +30,28 @@ public class SectionData implements IWeightedItem
 		this.reservations = new ArrayList<LinkPlan>();
 	}
 	
-	public static SectionData createFromCore(IGraphNode<RoomData, DoorwayData> core)
+	public static SectionData createFromList(ArrayList<RoomData> rooms)
 	{
+		// This code assumes that the original list of rooms
+		// will not be modified externally!
+		
 		int capacity = 0;
-		ArrayList<RoomData> allRooms = new ArrayList<RoomData>();
 		ArrayList<RoomData> sourceRooms = new ArrayList<RoomData>();
 		ArrayList<RoomData> destinationRooms = new ArrayList<RoomData>();
 		
-		boolean hasHoles;
-		RoomData currentRoom;
-		IGraphNode<RoomData, DoorwayData> current;
-		IGraphNode<RoomData, DoorwayData> neighbor;
-		Stack<IGraphNode<RoomData, DoorwayData>> ordering = new Stack<IGraphNode<RoomData, DoorwayData>>();
-		HashSet<IGraphNode<RoomData, DoorwayData>> visited = new HashSet<IGraphNode<RoomData, DoorwayData>>();
-		
-		visited.add(core);
-		ordering.add(core);
-		while (!ordering.isEmpty())
+		for (RoomData room : rooms)
 		{
-			current = ordering.pop();
-			currentRoom = current.data();
-			allRooms.add(currentRoom);
-			hasHoles = false;
-			
-			for (IEdge<RoomData, DoorwayData> edge : current.outbound())
+			if (room.isBottomSideClosed())
 			{
-				neighbor = edge.tail();
-				if (visited.add(neighbor))
+				destinationRooms.add(room);
+				if (room.getMaxDoorCapacity() > 0)
 				{
-					ordering.add(neighbor);
-				}
-			}
-			for (IEdge<RoomData, DoorwayData> edge : current.inbound())
-			{
-				neighbor = edge.head();
-				if (visited.add(neighbor))
-				{
-					ordering.add(neighbor);
-				}
-				if (edge.data().axis() == DoorwayData.Y_AXIS)
-				{
-					hasHoles = true;
-				}
-			}
-			
-			if (!hasHoles)
-			{
-				destinationRooms.add(currentRoom);
-				if (currentRoom.estimateDoorCapacity() > 0)
-				{
-					capacity += currentRoom.estimateDoorCapacity();
-					sourceRooms.add(currentRoom);
+					capacity += room.getMaxDoorCapacity();
+					sourceRooms.add(room);
 				}
 			}
 		}
-		return new SectionData(allRooms, sourceRooms, destinationRooms, capacity);
+		return new SectionData(rooms, sourceRooms, destinationRooms, capacity);
 	}
 	
 	public int capacity()

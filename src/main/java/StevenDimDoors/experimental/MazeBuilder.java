@@ -8,8 +8,13 @@ import net.minecraft.block.Block;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
-import StevenDimDoors.experimental.decorators.BaseDecorator;
+import StevenDimDoors.experimental.decorators.DecoratorBase;
+import StevenDimDoors.experimental.decorators.DecoratorCentralDoor;
+import StevenDimDoors.experimental.decorators.DecoratorDoors;
 import StevenDimDoors.experimental.decorators.DecoratorFinder;
+import StevenDimDoors.experimental.decorators.DecoratorHallwayDoor;
+import StevenDimDoors.experimental.decorators.DecoratorPillarDoors;
+import StevenDimDoors.experimental.decorators.DecoratorWallDoors;
 import StevenDimDoors.mod_pocketDim.Point3D;
 import StevenDimDoors.mod_pocketDim.config.DDProperties;
 import StevenDimDoors.mod_pocketDim.core.DimLink;
@@ -27,8 +32,14 @@ public class MazeBuilder
 	
 	public static void generate(World world, int x, int y, int z, Random random, DDProperties properties)
 	{
+		ArrayList<DecoratorDoors> doorSetters = new ArrayList<DecoratorDoors>();
+		doorSetters.add(new DecoratorCentralDoor());
+		doorSetters.add(new DecoratorPillarDoors());
+		doorSetters.add(new DecoratorWallDoors());
+		doorSetters.add(new DecoratorHallwayDoor());
+
 		// ISSUE FOR LATER: The room needs to be shifted so as to be centered on its entrance
-		/*int trials = 100000;
+		/*int trials = 10000;
 		long average = 0;
 		long timing = 0;
 		long min = Integer.MAX_VALUE;
@@ -36,7 +47,7 @@ public class MazeBuilder
 		for (int k = 0; k < trials; k++)
 		{
 			timing = System.nanoTime();
-			MazeDesigner.generate(random);
+			MazeDesigner.generate(random, doorSetters);
 			timing = System.nanoTime() - timing;
 			average += timing;
 			min = Math.min(min, timing);
@@ -48,7 +59,7 @@ public class MazeBuilder
 		System.out.println("AVERAGE DESIGN TIME: " + (average / 1000000) + " ms");*/
 		
 		// Produce a design
-		MazeDesign design = MazeDesigner.generate(random);
+		MazeDesign design = MazeDesigner.generate(random, doorSetters);
 		
 		// Compute an offset for the design and translate it to its final coordinates
 		BoundingBox bounds = design.getBounds();
@@ -157,7 +168,7 @@ public class MazeBuilder
 			World world, Random random, DDProperties properties)
 	{
 		RoomData room;
-		BaseDecorator decorator;
+		DecoratorBase decorator;
 		ArrayList<LinkPlan> links = new ArrayList<LinkPlan>();
 		
 		// Iterate over all rooms and apply decorators
@@ -379,7 +390,7 @@ public class MazeBuilder
 			for (z = minZ; z <= maxZ; z++)
 			{
 				setBlockDirectly(world, x, minY, z, blockID, metadata);
-				setBlockDirectly(world, x, maxY, z, blockID, metadata);
+				//setBlockDirectly(world, x, maxY, z, blockID, metadata);
 			}
 		}
 		for (x = minX; x <= maxX; x++)

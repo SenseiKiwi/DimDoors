@@ -10,7 +10,7 @@ import StevenDimDoors.experimental.RoomData;
 import StevenDimDoors.mod_pocketDim.Point3D;
 import StevenDimDoors.mod_pocketDim.config.DDProperties;
 
-public class DecoratorLinkDestination extends BaseDecorator
+public class DecoratorLinkDestination extends DecoratorBase
 {
 	@Override
 	public boolean canDecorate(RoomData room)

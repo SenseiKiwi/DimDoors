@@ -7,11 +7,11 @@ import StevenDimDoors.experimental.RoomData;
 
 public class DecoratorFinder
 {
-	private static ArrayList<BaseDecorator> decorators = null;
+	private static ArrayList<DecoratorBase> decorators = null;
 	
 	private DecoratorFinder() { }
 	
-	public static BaseDecorator find(RoomData room, Random random)
+	public static DecoratorBase find(RoomData room, Random random)
 	{
 		if (decorators == null)
 		{
@@ -21,8 +21,8 @@ public class DecoratorFinder
 		// Since there are only a few decorators right now, we just iterate
 		// over the list and check them all. If we add a lot, we'll need to
 		// switch to a more efficient approach.
-		ArrayList<BaseDecorator> matches = new ArrayList<BaseDecorator>();
-		for (BaseDecorator decorator : decorators)
+		ArrayList<DecoratorBase> matches = new ArrayList<DecoratorBase>();
+		for (DecoratorBase decorator : decorators)
 		{
 			if (decorator.canDecorate(room))
 			{
@@ -40,15 +40,13 @@ public class DecoratorFinder
 	private static void load()
 	{
 		// List all the decorators we have
-		decorators = new ArrayList<BaseDecorator>();
+		decorators = new ArrayList<DecoratorBase>();
 		decorators.add(new DecoratorLinkDestination());
-		decorators.add(new DecoratorCentralDoor());
 		decorators.add(new DecoratorTorch());
 		//decorators.add(new CorridorTrapDecorator());
-		decorators.add(new DecoratorDefaultDoor());
 		decorators.add(new DecoratorCentralDoor());
 		decorators.add(new DecoratorPillarDoors());
-		decorators.add(new DecoratorSideDoors());
-		//decorators.add(new SpreadDoorDecorator());
+		decorators.add(new DecoratorWallDoors());
+		decorators.add(new DecoratorHallwayDoor());
 	}
 }
