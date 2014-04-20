@@ -130,4 +130,14 @@ public class PartitionNode<T> extends BoundingBox
 	{
 		return data;
 	}
+	
+	@Override
+	public void translate(Point3D offset)
+	{
+		super.translate(offset);
+		if (leftChild != null)
+			leftChild.translate(offset);
+		if (rightChild != null)
+			rightChild.translate(offset);
+	}
 }

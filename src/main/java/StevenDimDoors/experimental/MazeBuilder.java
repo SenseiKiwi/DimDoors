@@ -39,7 +39,7 @@ public class MazeBuilder
 		doorSetters.add(new DecoratorHallwayDoor());
 
 		// ISSUE FOR LATER: The room needs to be shifted so as to be centered on its entrance
-		/*int trials = 10000;
+		/*int trials = 1000000;
 		long average = 0;
 		long timing = 0;
 		long min = Integer.MAX_VALUE;
@@ -82,7 +82,7 @@ public class MazeBuilder
 			SphereDecayOperation decay, Random random)
 	{
 		final int DECAY_BOX_SIZE = 7;
-		final int DECAY_OPERATIONS = 5 + random.nextInt(5);
+		final int DECAY_OPERATIONS = 4 + random.nextInt(4);
 		final int DECAY_ATTEMPTS = 20;
 		
 		int x, y, z;

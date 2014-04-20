@@ -33,10 +33,11 @@ public class MazeDesign
 
 	public void translate(Point3D offset)
 	{
-		// Translate all rooms and doorways by a given offset
+		// Translate all rooms by translating the whole partition tree
+		root.translate(offset);
+		// Translate all doorways by a given offset
 		for (IGraphNode<RoomData, DoorwayData> node : layout.nodes())
 		{
-			node.data().getPartitionNode().translate(offset);
 			for (IEdge<RoomData, DoorwayData> edge : node.outbound())
 			{
 				edge.data().translate(offset);
