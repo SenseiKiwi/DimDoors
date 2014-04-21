@@ -3,8 +3,8 @@ package StevenDimDoors.mod_pocketDim.util;
 /*.
  * Implements a simple generic item container for use with WeightedRandom.
  */
-public class WeightedContainer<T> implements IWeightedItem {
-	
+public class WeightedContainer<T> implements IWeightedItem, Comparable<WeightedContainer<T>>
+{
 	private int weight;
 	private T data;
 	
@@ -29,5 +29,11 @@ public class WeightedContainer<T> implements IWeightedItem {
 	public WeightedContainer<T> clone()
 	{
 		return new WeightedContainer<T>(data, weight);
+	}
+	
+	@Override
+	public int compareTo(WeightedContainer<T> other)
+	{
+		return this.weight - other.weight;
 	}
 }

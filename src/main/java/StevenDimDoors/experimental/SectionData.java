@@ -65,7 +65,7 @@ public class SectionData implements IWeightedItem
 		return capacity;
 	}
 	
-	public void createEntranceLink(Random random)
+	public RoomData createEntranceLink(Random random)
 	{
 		int index = random.nextInt(sourceRooms.size());
 		RoomData room = sourceRooms.get(index);
@@ -81,6 +81,7 @@ public class SectionData implements IWeightedItem
 			protectedRooms.add(room);
 		}
 		capacity--;
+		return room;
 	}
 
 	public void createDungeonLink(Random random)

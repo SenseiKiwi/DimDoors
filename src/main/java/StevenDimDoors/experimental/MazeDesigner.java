@@ -3,12 +3,14 @@ package StevenDimDoors.experimental;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Random;
 
 import net.minecraft.util.MathHelper;
 import StevenDimDoors.experimental.decorators.DecoratorDoors;
 import StevenDimDoors.mod_pocketDim.Point3D;
+import StevenDimDoors.mod_pocketDim.util.WeightedContainer;
 import StevenDimDoors.mod_pocketDim.util.WeightedRandom;
 
 public class MazeDesigner
@@ -31,6 +33,7 @@ public class MazeDesigner
 		DirectedGraph<RoomData, DoorwayData> layout = null;
 		ArrayList<ArrayList<RoomData>> groups = null;
 		ArrayList<SectionData> sections = null;
+		RoomData entrance = null;
 		BoundingBox bounds = null;
 		
 		boolean ready = false;
@@ -79,7 +82,10 @@ public class MazeDesigner
 		}
 		
 		// Set up the placement of dimensional doors within the maze
-		createMazeLinks(sections, random);
+		entrance = createMazeLinks(sections, random);
+		
+		// Calculate the orientations and distances of all rooms
+		setGlobalDistances(entrance, layout);
 		
 		// Calculate bounding box
 		bounds = calculateBounds(layout);
@@ -622,7 +628,7 @@ public class MazeDesigner
 		return sections;
 	}
 	
-	private static void createMazeLinks(ArrayList<SectionData> sections, Random random)
+	private static RoomData createMazeLinks(ArrayList<SectionData> sections, Random random)
 	{
 		// We have 4 objectives here...
 		// 1. Place the entrance to the maze
@@ -642,6 +648,7 @@ public class MazeDesigner
 		int index;
 		int count;
 		int totalCapacity;
+		RoomData entrance;
 		SectionData selection;
 		SectionData destination;
 		ArrayList<SectionData> usableSections;
@@ -658,15 +665,13 @@ public class MazeDesigner
 			// guarantees that each one has at least the capacity for 2 doors.
 			// Remove the selected section if it falls below a capacity of 2
 			// since we need to leave at least 1 capacity for section linking.
-			/*
 			index = random.nextInt(usableSections.size());
 			selection = usableSections.get(index);
-			selection.createEntranceLink(random);
+			entrance = selection.createEntranceLink(random);
 			if (selection.capacity() <= 1)
 			{
 				usableSections.remove(index);
 			}
-			*/
 			
 			// Place 3 to 4 dungeon doors in random sections
 			// Remove any sections that fall under a capacity of 2.
@@ -725,7 +730,7 @@ public class MazeDesigner
 			// Only 1 section
 			selection = sections.get(0);
 			// Place entrance door in a random room
-			//selection.createEntranceLink(random);
+			entrance = selection.createEntranceLink(random);
 			// Place 3 to 4 dungeon doors or fewer, based on capacity
 			count = Math.min(3 + random.nextInt(2), selection.capacity());
 			for (; count > 0; count--)
@@ -733,6 +738,7 @@ public class MazeDesigner
 				selection.createDungeonLink(random);
 			}
 		}
+		return entrance;
 	}
 	
 	private static void linkMazeSections(ArrayList<SectionData> sections, Random random)
@@ -836,6 +842,99 @@ public class MazeDesigner
 		}
 		
 		// Done! At this point, all sections are connected.
+	}
+	
+	private static void setGlobalDistances(RoomData entrance, DirectedGraph<RoomData, DoorwayData> layout)
+	{
+		// This function tags all rooms in a maze with their shortest-path distances.
+		// Note that different types of passages are assigned different weights here
+		// to represent that some passages are harder or involve more risk than others.
+		// We'll use Djiktra's algorithm to calculate the distances correctly.
+		final int SIDE_PASSAGE_WEIGHT = 1;
+		final int HOLE_DOWN_WEIGHT = 10;
+		final int HOLE_UP_WEIGHT = 100;
+		final int DOOR_WEIGHT = 1000;
+		final int HUGE_WEIGHT = 1000000;
+		
+		// Reset all distances
+		for (IGraphNode<RoomData, DoorwayData> node : layout.nodes())
+		{
+			node.data().setDistance(HUGE_WEIGHT);
+		}
+		entrance.setDistance(0);
+		
+		// Apply Djiktra's algorithm
+		int distance;
+		RoomData currentRoom;
+		RoomData neighborRoom;
+		WeightedContainer<RoomData> currentEntry;
+		IGraphNode<RoomData, DoorwayData> currentNode;
+		PriorityQueue<WeightedContainer<RoomData>> ordering = new PriorityQueue<WeightedContainer<RoomData>>();
+		
+		ordering.add( new WeightedContainer<RoomData>(entrance, 0) );
+		while (!ordering.isEmpty())
+		{
+			currentEntry = ordering.remove();
+			currentRoom = currentEntry.getData();
+			
+			// To avoid dealing with updating entries in the priority queue,
+			// we simply keep inserting new entries as distances change.
+			// That means we might have old entries mixed in, so make sure
+			// this entry is relevant. Old entries have mismatched weights.
+			if (currentEntry.getWeight() == currentRoom.getDistance())
+			{
+				currentNode = currentRoom.getLayoutNode();
+				for (IEdge<RoomData, DoorwayData> passage : currentNode.inbound())
+				{
+					distance = currentRoom.getDistance();
+					if (passage.data().axis() != DoorwayData.Y_AXIS)
+					{
+						distance += SIDE_PASSAGE_WEIGHT;
+					}
+					else
+					{
+						distance += HOLE_DOWN_WEIGHT;
+					}
+					neighborRoom = passage.head().data();
+					if (distance < neighborRoom.getDistance())
+					{
+						neighborRoom.setDistance(distance);
+						ordering.add(new WeightedContainer<RoomData>(neighborRoom, distance));
+					}
+				}
+				for (IEdge<RoomData, DoorwayData> passage : currentNode.outbound())
+				{
+					distance = currentRoom.getDistance();
+					if (passage.data().axis() != DoorwayData.Y_AXIS)
+					{
+						distance += SIDE_PASSAGE_WEIGHT;
+					}
+					else
+					{
+						distance += HOLE_UP_WEIGHT;
+					}
+					neighborRoom = passage.tail().data();
+					if (distance < neighborRoom.getDistance())
+					{
+						neighborRoom.setDistance(distance);
+						ordering.add(new WeightedContainer<RoomData>(neighborRoom, distance));
+					}
+				}
+				for (LinkPlan link : currentRoom.getOutboundLinks())
+				{
+					if (link.isInternal())
+					{
+						distance = currentRoom.getDistance() + DOOR_WEIGHT;
+						neighborRoom = link.destination();
+						if (distance < neighborRoom.getDistance())
+						{
+							neighborRoom.setDistance(distance);
+							ordering.add(new WeightedContainer<RoomData>(neighborRoom, distance));
+						}
+					}
+				}
+			}
+		}
 	}
 	
 	private static BoundingBox calculateBounds(DirectedGraph<RoomData, DoorwayData> layout)
