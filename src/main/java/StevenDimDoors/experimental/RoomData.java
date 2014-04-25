@@ -14,6 +14,7 @@ public class RoomData
 	
 	private int capacity;
 	private int distance;
+	private int orientation;
 	private boolean decayed;
 	private boolean northClosed;
 	private boolean southClosed;
@@ -216,5 +217,15 @@ public class RoomData
 	public boolean isBottomSideClosed()
 	{
 		return bottomClosed;
+	}
+	
+	public int getOrientation()
+	{
+		return orientation;
+	}
+	
+	public void setOrientation(int value)
+	{
+		this.orientation = value;
 	}
 }
