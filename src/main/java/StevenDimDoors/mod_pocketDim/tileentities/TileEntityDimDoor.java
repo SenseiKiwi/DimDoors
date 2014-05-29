@@ -6,6 +6,7 @@ import StevenDimDoors.mod_pocketDim.mod_pocketDim;
 import StevenDimDoors.mod_pocketDim.blocks.IDimDoor;
 import StevenDimDoors.mod_pocketDim.core.NewDimData;
 import StevenDimDoors.mod_pocketDim.core.PocketManager;
+import StevenDimDoors.mod_pocketDim.watcher.ClientLinkData;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.packet.Packet;
@@ -18,6 +19,7 @@ public class TileEntityDimDoor extends DDTileEntityBase
 	public boolean openOrClosed;
 	public int orientation;
 	public boolean hasExit;
+	public byte lockStatus;
 	public boolean isDungeonChainLink;
 	public boolean hasGennedPair=false;
 
@@ -32,7 +34,7 @@ public class TileEntityDimDoor extends DDTileEntityBase
 	 {
 		 if(PocketManager.getLink(xCoord, yCoord, zCoord, worldObj)!=null)
 		 {
-			 return ServerPacketHandler.createLinkPacket(PocketManager.getLink(xCoord, yCoord, zCoord, worldObj).link());
+			 return ServerPacketHandler.createLinkPacket(new ClientLinkData(PocketManager.getLink(xCoord, yCoord, zCoord, worldObj)));
 		 }
 		 return null;
 	 }

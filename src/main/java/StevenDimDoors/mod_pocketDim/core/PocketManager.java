@@ -7,32 +7,26 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
-import StevenDimDoors.mod_pocketDim.Point3D;
 import StevenDimDoors.mod_pocketDim.mod_pocketDim;
 import StevenDimDoors.mod_pocketDim.config.DDProperties;
 import StevenDimDoors.mod_pocketDim.helpers.Compactor;
 import StevenDimDoors.mod_pocketDim.helpers.DeleteFolder;
 import StevenDimDoors.mod_pocketDim.saving.DDSaveHandler;
-import StevenDimDoors.mod_pocketDim.saving.IPackable;
 import StevenDimDoors.mod_pocketDim.saving.OldSaveImporter;
 import StevenDimDoors.mod_pocketDim.saving.PackedDimData;
-import StevenDimDoors.mod_pocketDim.saving.PackedDungeonData;
-import StevenDimDoors.mod_pocketDim.saving.PackedLinkData;
-import StevenDimDoors.mod_pocketDim.saving.PackedLinkTail;
 import StevenDimDoors.mod_pocketDim.util.Point4D;
 import StevenDimDoors.mod_pocketDim.watcher.ClientDimData;
 import StevenDimDoors.mod_pocketDim.watcher.ClientLinkData;
 import StevenDimDoors.mod_pocketDim.watcher.IUpdateSource;
 import StevenDimDoors.mod_pocketDim.watcher.IUpdateWatcher;
 import StevenDimDoors.mod_pocketDim.watcher.UpdateWatcherProxy;
+import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 
 /**
  * This class regulates all the operations involving the storage and manipulation of dimensions.
@@ -40,8 +34,8 @@ import StevenDimDoors.mod_pocketDim.watcher.UpdateWatcherProxy;
  * well as loading old dimensions on startup
  */
 public class PocketManager
-{	
-	private static class InnerDimData extends NewDimData implements IPackable<PackedDimData>
+{
+	private static class InnerDimData extends NewDimData
 	{
 		// This class allows us to instantiate NewDimData indirectly without exposing
 		// a public constructor from NewDimData. It's meant to stop us from constructing
@@ -59,102 +53,7 @@ public class PocketManager
 			// This constructor is meant for client-side code only
 			super(id, root);
 		}
-		
-		public void clear()
-		{
-			// If this dimension has a parent, remove it from its parent's list of children
-			if (parent != null)
-			{
-				parent.children.remove(this);
-			}
-			// Remove this dimension as the parent of its children
-			for (NewDimData child : children)
-			{
-				child.parent = null;
-			}
-			// Clear all fields
-			id = Integer.MIN_VALUE;
-			linkMapping.clear();
-			linkMapping = null;
-			linkList.clear();
-			linkList = null;
-			children.clear();
-			children = null;
-			isDungeon = false;
-			isFilled = false;
-			depth = Integer.MIN_VALUE;
-			packDepth = Integer.MIN_VALUE;
-			origin = null;
-			orientation = Integer.MIN_VALUE;
-			dungeon = null;
-			linkWatcher = null;
-		}
 
-		@Override
-		public String name()
-		{
-			return String.valueOf(id);
-		}
-
-		@Override
-		public PackedDimData pack()
-		{
-			ArrayList<Integer> ChildIDs = new ArrayList<Integer>();
-			ArrayList<PackedLinkData> Links = new ArrayList<PackedLinkData>();
-			ArrayList<PackedLinkTail> Tails = new ArrayList<PackedLinkTail>();
-			PackedDungeonData packedDungeon=null; 
-			
-			if(this.dungeon!=null)
-			{
-				packedDungeon= new PackedDungeonData(dungeon.weight(), dungeon.isOpen(), dungeon.isInternal(), 
-						dungeon.schematicPath(), dungeon.schematicName(), dungeon.dungeonType().Name, 
-						dungeon.dungeonType().Owner.getName());
-			}
-			//Make a list of children
-			for(NewDimData data : this.children)
-			{
-				ChildIDs.add(data.id);
-			}
-			for(DimLink link:this.links())
-			{
-				ArrayList<Point3D> children = new ArrayList<Point3D>();
-				Point3D parentPoint = new Point3D(-1,-1,-1);
-				if(link.parent!=null)
-				{
-					parentPoint=link.parent.link.point.toPoint3D();
-				}
-				
-				for(DimLink childLink : link.children)
-				{
-					children.add(childLink.source().toPoint3D());
-				}
-				PackedLinkTail tail = new PackedLinkTail(link.tail.getDestination(),link.tail.getLinkType());
-				Links.add(new PackedLinkData(link.link.point,parentPoint,tail,link.link.orientation,children));
-				
-				PackedLinkTail tempTail = new PackedLinkTail(link.tail.getDestination(),link.tail.getLinkType());
-				if(Tails.contains(tempTail))
-				{
-					Tails.add(tempTail);
-
-				}
-				
-				
-			}
-			int parentID=this.id;
-			Point3D originPoint=new Point3D(0,0,0);
-			if(this.parent!=null)
-			{
-				parentID = this.parent.id;
-			}
-			if(this.origin!=null)
-			{
-				originPoint=this.origin.toPoint3D();
-			}
-			return new PackedDimData(this.id, depth, this.packDepth, parentID, this.root().id(), orientation, 
-										isDungeon, isFilled,packedDungeon, originPoint, ChildIDs, Links, Tails);
-			// FIXME: IMPLEMENTATION PLZTHX
-			//I tried
-		}
 	}
 	
 	  private static class ClientLinkWatcher implements IUpdateWatcher<ClientLinkData>
@@ -164,7 +63,7 @@ public class PocketManager
 		  {
 			  Point4D source = link.point;
 			  NewDimData dimension = getDimensionData(source.getDimension());
-			  dimension.createLink(source.getX(), source.getY(), source.getZ(), LinkTypes.CLIENT_SIDE,link.orientation);
+			  dimension.createLink(source, LinkTypes.CLIENT_SIDE, 0, link.lock);
 		  }
 
 		  @Override
@@ -173,7 +72,17 @@ public class PocketManager
 			  Point4D source = link.point;
 			  NewDimData dimension = getDimensionData(source.getDimension());
 			  dimension.deleteLink(source.getX(), source.getY(), source.getZ());
-              }
+		  }
+
+		  @Override
+		  public void update(ClientLinkData link)
+		  {
+			  Point4D source = link.point;
+			  NewDimData dimension = getDimensionData(source.getDimension());	
+			  DimLink dLink = dimension.getLink(source);
+			  dLink.setLock(link.lock);
+			  
+		  }
       }
 	
 	private static class ClientDimWatcher implements IUpdateWatcher<ClientDimData>
@@ -188,6 +97,12 @@ public class PocketManager
 		public void onDeleted(ClientDimData data)
 		{
 			deletePocket(getDimensionData(data.ID), false);
+		}
+
+		@Override
+		public void update(ClientDimData message)
+		{
+			// TODO Auto-generated method stub
 		}
 	}
 
@@ -223,6 +138,9 @@ public class PocketManager
 	//ArrayList that stores the dimension IDs of any dimension that has been deleted.
 	private static ArrayList<Integer> dimensionIDBlackList = null;
 
+	//Stores all the personal pocket mappings
+	private static HashMap<String, NewDimData> personalPocketsMapping = null; 
+
 	public static boolean isLoaded()
 	{
 		return isLoaded;
@@ -247,6 +165,7 @@ public class PocketManager
 		dimensionData = new HashMap<Integer, InnerDimData>();
 		rootDimensions = new ArrayList<NewDimData>();
 		dimensionIDBlackList = new ArrayList<Integer>();
+		personalPocketsMapping = new HashMap<String, NewDimData>();
 		
 		if(FMLCommonHandler.instance().getEffectiveSide().isClient())
 		{
@@ -363,7 +282,14 @@ public class PocketManager
 			{
 				try
 				{
-					DimensionManager.registerDimension(dimension.id(), properties.PocketProviderID);
+					if(personalPocketsMapping.containsValue(dimension))
+					{
+						DimensionManager.registerDimension(dimension.id(), properties.PersonalPocketProviderID);
+					}
+					else
+					{
+						DimensionManager.registerDimension(dimension.id(), properties.PocketProviderID);
+					}
 				}
 				catch (Exception e)
 				{
@@ -498,6 +424,21 @@ public class PocketManager
 		return registerDimension(world.provider.dimensionId, null, false, false);
 	}
 
+	public static NewDimData registerPersonalPocket(NewDimData parent, String playerName)
+	{
+		if (parent == null)
+		{
+			throw new IllegalArgumentException("parent cannot be null. A pocket dimension must always have a parent dimension.");
+		}
+		
+		DDProperties properties = DDProperties.instance();
+		int dimensionID = DimensionManager.getNextFreeDimId();
+		DimensionManager.registerDimension(dimensionID, properties.PersonalPocketProviderID);
+		NewDimData data = registerDimension(dimensionID, (InnerDimData) parent, true, false);
+		personalPocketsMapping.put(playerName, data);
+		return data;
+	}
+	
 	public static NewDimData registerPocket(NewDimData parent, boolean isDungeon)
 	{
 		if (parent == null)
@@ -625,6 +566,7 @@ public class PocketManager
 		
 		unregisterPockets();
 		dimensionData = null;
+		personalPocketsMapping = null;
 		rootDimensions = null;
 		isLoaded = false;
 		isConnected = false;
@@ -727,5 +669,30 @@ public class PocketManager
 	public static UpdateWatcherProxy<ClientDimData> getDimwatcher() 
 	{
 		return dimWatcher;
+	}
+	
+	public static UpdateWatcherProxy<ClientLinkData> getLinkWatcher() 
+	{
+		return linkWatcher;
+	}
+
+	public static NewDimData getPersonalDimensionForPlayer(String name)
+	{
+		if(personalPocketsMapping.containsKey(name))
+		{
+			return personalPocketsMapping.get(name);
+		}
+		return null;
+	}
+	
+	public static void setPersonalPocketsMapping(HashMap<String, NewDimData> ppMap)
+	{
+		personalPocketsMapping = ppMap;
+	}
+
+	public static HashMap<String, NewDimData> getPersonalPocketMapping()
+	{
+		// TODO Auto-generated method stub
+		return personalPocketsMapping;
 	}
 }

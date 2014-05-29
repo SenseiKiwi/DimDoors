@@ -1,7 +1,6 @@
 package StevenDimDoors.mod_pocketDim.blocks;
 
 import java.util.Random;
-
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDoor;
 import net.minecraft.block.ITileEntityProvider;
@@ -11,7 +10,8 @@ import net.minecraft.client.renderer.texture.IconRegister;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
+import net.minecraft.item.ItemDoor;
+import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.Icon;
 import net.minecraft.util.MathHelper;
@@ -22,7 +22,7 @@ import StevenDimDoors.mod_pocketDim.config.DDProperties;
 import StevenDimDoors.mod_pocketDim.core.DDTeleporter;
 import StevenDimDoors.mod_pocketDim.core.DimLink;
 import StevenDimDoors.mod_pocketDim.core.PocketManager;
-import StevenDimDoors.mod_pocketDim.schematic.BlockRotator;
+import StevenDimDoors.mod_pocketDim.items.ItemDDKey;
 import StevenDimDoors.mod_pocketDim.tileentities.TileEntityDimDoor;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -74,6 +74,18 @@ public abstract class BaseDimDoor extends BlockDoor implements IDimDoor, ITileEn
 	@Override
 	public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hitX, float hitY, float hitZ)
 	{
+		
+		ItemStack stack = player.inventory.getCurrentItem();
+		if (stack != null && stack.getItem() instanceof ItemDDKey)
+		{
+			return false;
+		}
+
+		if(!checkCanOpen(world, x, y, z, player))
+		{
+			return false;
+		}
+
 		final int MAGIC_CONSTANT = 1003;
 		
 		int metadata = this.getFullMetadata(world, x, y, z);
@@ -92,6 +104,7 @@ public abstract class BaseDimDoor extends BlockDoor implements IDimDoor, ITileEn
 		}
 
 		world.playAuxSFXAtEntity(player, MAGIC_CONSTANT, x, y, z, 0);
+	
 		return true;
 	}
 
@@ -175,34 +188,39 @@ public abstract class BaseDimDoor extends BlockDoor implements IDimDoor, ITileEn
 	//but this works fine and is more versatile I think. 
 	public BaseDimDoor updateAttachedTile(World world, int x, int y, int z)
 	{
-		TileEntity tile = world.getBlockTileEntity(x, y, z);
-		if (tile instanceof TileEntityDimDoor)
-		{
-			int metadata = world.getBlockMetadata(x, y, z);
-			TileEntityDimDoor dimTile = (TileEntityDimDoor) tile;
-			dimTile.openOrClosed = this.isDoorOnRift(world, x, y, z)&&this.isUpperDoorBlock(metadata);
-			dimTile.orientation = this.getFullMetadata(world, x, y, z) & 7;
-		}
+		mod_pocketDim.proxy.updateDoorTE(this, world, x, y, z);
 		return this;
 	}
 	
 	public boolean isDoorOnRift(World world, int x, int y, int z)
 	{
-		if(this.isUpperDoorBlock( world.getBlockMetadata(x, y, z)))
+		return this.getLink(world, x, y, z) != null;
+	}
+	public DimLink getLink(World world, int x, int y, int z)
+	{
+		DimLink link= PocketManager.getLink(x, y, z, world.provider.dimensionId);
+		if(link!=null)
 		{
-			if(PocketManager.getLink(x, y, z, world.provider.dimensionId) != null||PocketManager.getLink(x, y-1, z, world.provider.dimensionId) != null)
+			return link;
+		}
+		
+		if(isUpperDoorBlock( world.getBlockMetadata(x, y, z)))
+		{
+			link = PocketManager.getLink(x, y-1, z, world.provider.dimensionId);
+			if(link!=null)
 			{
-				return true;
+				return link;
 			}
 		}
 		else
 		{
-			if(PocketManager.getLink(x, y, z, world.provider.dimensionId) != null||PocketManager.getLink(x, y+1, z, world.provider.dimensionId) != null)
+			link = PocketManager.getLink(x, y+1, z, world.provider.dimensionId);
+			if(link != null)
 			{
-				return true;
+				return link;
 			}
 		}
-		return false;
+		return null;
 	}
 
 	/**
@@ -312,6 +330,7 @@ public abstract class BaseDimDoor extends BlockDoor implements IDimDoor, ITileEn
 	@Override
 	public void onNeighborBlockChange(World world, int x, int y, int z, int neighborID)
 	{
+		
 		int metadata = world.getBlockMetadata(x, y, z);
 		if (isUpperDoorBlock(metadata))
 		{
@@ -319,7 +338,6 @@ public abstract class BaseDimDoor extends BlockDoor implements IDimDoor, ITileEn
 			{
 				world.setBlock(x, y, z, 0);
 			}
-			
 			if (neighborID > 0 && neighborID != this.blockID)
 			{
 				this.onNeighborBlockChange(world, x, y - 1, z, neighborID);
@@ -335,7 +353,7 @@ public abstract class BaseDimDoor extends BlockDoor implements IDimDoor, ITileEn
 					this.dropBlockAsItem(world, x, y, z, metadata, 0);
 				}
 			}
-			else
+			else if(this.getLockStatus(world, x, y, z)<=1)
 			{
 				boolean powered = world.isBlockIndirectlyGettingPowered(x, y, z) || world.isBlockIndirectlyGettingPowered(x, y + 1, z);
 				if ((powered || neighborID > 0 && Block.blocksList[neighborID].canProvidePower()) && neighborID != this.blockID)
@@ -429,16 +447,77 @@ public abstract class BaseDimDoor extends BlockDoor implements IDimDoor, ITileEn
 		}
 	}
 	
-	public static boolean isUpperDoorBlock(int metadata)
+	public boolean isUpperDoorBlock(int metadata)
 	{
 		return (metadata & 8) != 0;
 	}
 	
-	public static boolean isDoorOpen(int metadata)
+	public boolean isDoorOpen(int metadata)
 	{
 		return (metadata & 4) != 0;
 	}
 	
+	/**
+	 * 0 if link is no lock;
+	 * 1 if there is a lock;
+	 * 2 if the lock is locked.
+	 * @param world
+	 * @param x
+	 * @param y
+	 * @param z
+	 * @return
+	 */
+	public byte getLockStatus(World world, int x, int y, int z)
+	{
+		byte status = 0;
+		DimLink link = getLink(world, x, y, z);
+		if(link!=null&&link.hasLock())
+		{
+			status++;
+			if(link.isLocked())
+			{
+				status++;
+			}
+		}
+		return status;
+	}
+	
+	
+	public boolean checkCanOpen(World world, int x, int y, int z)
+	{
+		return this.checkCanOpen(world, x, y, z, null);
+	}
+	
+	public boolean checkCanOpen(World world, int x, int y, int z, EntityPlayer player)
+	{
+		DimLink link = getLink(world, x, y, z);
+		if(link==null||player==null)
+		{
+			return link==null;
+		}
+		if(!link.isLocked())
+		{
+			return true;
+		}
+		
+		for(ItemStack item : player.inventory.mainInventory)
+		{
+			if(item != null)
+			{
+				if(item.getItem() instanceof ItemDDKey)
+				{
+					if(link.open(item))
+					{
+						return true;
+					}
+				}
+			}
+		}
+		player.playSound(mod_pocketDim.modid + ":doorLocked",  1F, 1F);
+		return false;
+	}
+
+	    
 	protected static boolean isEntityFacingDoor(int metadata, EntityLivingBase entity)
 	{
 		// Although any entity has the proper fields for this check,

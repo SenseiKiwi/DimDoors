@@ -1,14 +1,12 @@
 package StevenDimDoors.mod_pocketDim;
 
-import net.minecraft.block.Block;
 import net.minecraft.client.audio.SoundManager;
 import net.minecraft.client.audio.SoundPoolEntry;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemDoor;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.sound.PlayBackgroundMusicEvent;
 import net.minecraftforge.client.event.sound.SoundLoadEvent;
@@ -20,11 +18,12 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent.Action;
 import net.minecraftforge.event.terraingen.InitMapGenEvent;
 import net.minecraftforge.event.world.WorldEvent;
-import StevenDimDoors.mod_pocketDim.blocks.BaseDimDoor;
 import StevenDimDoors.mod_pocketDim.config.DDProperties;
 import StevenDimDoors.mod_pocketDim.core.DDTeleporter;
+import StevenDimDoors.mod_pocketDim.core.NewDimData;
 import StevenDimDoors.mod_pocketDim.core.PocketManager;
 import StevenDimDoors.mod_pocketDim.items.BaseItemDoor;
+import StevenDimDoors.mod_pocketDim.items.ItemWarpDoor;
 import StevenDimDoors.mod_pocketDim.util.Point4D;
 import StevenDimDoors.mod_pocketDim.world.LimboProvider;
 import StevenDimDoors.mod_pocketDim.world.PocketProvider;
@@ -59,6 +58,9 @@ public class EventHookContainer
 	@ForgeSubscribe
 	public void onSoundLoad(SoundLoadEvent event)
 	{
+		event.manager.addSound(mod_pocketDim.modid + ":doorLocked.ogg");
+		event.manager.addSound(mod_pocketDim.modid + ":keyLock.ogg");
+		event.manager.addSound(mod_pocketDim.modid + ":keyUnlock.ogg");
 		event.manager.addSound(mod_pocketDim.modid + ":monk.ogg");
 		event.manager.addSound(mod_pocketDim.modid + ":crack.ogg");
 		event.manager.addSound(mod_pocketDim.modid + ":tearing.ogg");
@@ -92,9 +94,23 @@ public class EventHookContainer
 		ItemStack stack = event.entityPlayer.inventory.getCurrentItem();
 		if (stack != null && stack.getItem() instanceof ItemDoor)
 		{
-			if(BaseItemDoor.getDoorToPlace(stack.getItem())!=null)
+			if(stack.getItem() instanceof ItemWarpDoor)
 			{
-				if (mod_pocketDim.itemDimensionalDoor.tryToPlaceDoor(stack, event.entityPlayer, world,
+				NewDimData data = PocketManager.getDimensionData(world);
+				while(data.depth()>0)
+				{
+					if(PocketManager.getPersonalPocketMapping().containsValue(data))
+					{
+						mod_pocketDim.sendChat(event.entityPlayer,("Something prevents the Warp Door from tunneling out here"));
+						event.setCanceled(true);
+						return;
+					}
+					data = data.parent();
+				}
+			}
+			if (BaseItemDoor.getDoorToPlace(stack.getItem()) != null)
+			{
+				if (BaseItemDoor.tryToPlaceDoor(stack, event.entityPlayer, world,
 						event.x, event.y, event.z, event.face))
 				{
 					// Cancel the event so that we don't get two doors from vanilla doors
@@ -139,13 +155,24 @@ public class EventHookContainer
 		Entity entity = event.entity;
 
 		if (properties.LimboEnabled && properties.LimboReturnsInventoryEnabled &&
-				entity instanceof EntityPlayer && entity.worldObj.provider instanceof PocketProvider)
+				entity instanceof EntityPlayer)
 		{
-			EntityPlayer player = (EntityPlayer) entity;
-			mod_pocketDim.deathTracker.addUsername(player.username);
-			revivePlayerInLimbo(player);
-			event.setCanceled(true);
-			return false;
+			if(entity.worldObj.provider instanceof PocketProvider)
+			{
+				EntityPlayer player = (EntityPlayer) entity;
+				mod_pocketDim.deathTracker.addUsername(player.username);
+				revivePlayerInLimbo(player);
+				event.setCanceled(true);
+				return false;
+			}
+			else if(entity.worldObj.provider instanceof LimboProvider && event.source == DamageSource.outOfWorld)
+			{
+				EntityPlayer player = (EntityPlayer) entity;
+				revivePlayerInLimbo(player);
+				mod_pocketDim.sendChat(player, "Search for the dark red pools which accumulate in the lower reaches of Limbo");
+				event.setCanceled(true);
+				return false;
+			}
 		}
 		return true;
 	}

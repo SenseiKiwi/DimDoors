@@ -23,6 +23,7 @@ import net.minecraftforge.common.DimensionManager;
 import StevenDimDoors.mod_pocketDim.Point3D;
 import StevenDimDoors.mod_pocketDim.mod_pocketDim;
 import StevenDimDoors.mod_pocketDim.blocks.BaseDimDoor;
+import StevenDimDoors.mod_pocketDim.blocks.IDimDoor;
 import StevenDimDoors.mod_pocketDim.config.DDProperties;
 import StevenDimDoors.mod_pocketDim.helpers.yCoordHelper;
 import StevenDimDoors.mod_pocketDim.items.ItemDimensionalDoor;
@@ -251,14 +252,13 @@ public class DDTeleporter
 		}
 		
 		//Check if the block below that point is actually a door
-		int blockID = world.getBlockId(door.getX(), door.getY() - 1, door.getZ());
-		if (blockID != properties.DimensionalDoorID && blockID != properties.WarpDoorID &&
-			blockID != properties.TransientDoorID && blockID != properties.UnstableDoorID
-			&& blockID != properties.GoldenDimensionalDoorID)
+		Block block = Block.blocksList[world.getBlockId(door.getX(), door.getY() - 1, door.getZ())];
+		if (block==null || !(block instanceof IDimDoor))
 		{
 			//Return the pocket's orientation instead
 			return PocketManager.getDimensionData(door.getDimension()).orientation();
 		}
+		
 		
 		//Return the orientation portion of its metadata
 		return world.getBlockMetadata(door.getX(), door.getY() - 1, door.getZ()) & 3;
@@ -458,7 +458,7 @@ public class DDTeleporter
 			return;
 		}
 
-		if (!initializeDestination(link, DDProperties.instance(),door))
+		if (!initializeDestination(link, DDProperties.instance(),entity,door))
 		{
 			return;
 		}
@@ -471,7 +471,7 @@ public class DDTeleporter
 				entity.worldObj.playSoundEffect(entity.posX, entity.posY, entity.posZ, "mob.endermen.portal", 1.0F, 1.0F);
 			}
 		}
-		else
+		else 
 		{
 			buildExitDoor(door, link, DDProperties.instance());
 			entity = teleportEntity(entity, link.destination(), link.linkType() != LinkTypes.UNSAFE_EXIT);
@@ -479,13 +479,13 @@ public class DDTeleporter
 		}
 	}
 
-	private static boolean initializeDestination(DimLink link, DDProperties properties, Block door)
+	private static boolean initializeDestination(DimLink link, DDProperties properties, Entity entity, Block door)
 	{
-		if (link.hasDestination())
+		if (link.hasDestination()&&link.linkType()!=LinkTypes.PERSONAL)
 		{
 			if(PocketManager.isBlackListed(link.destination().getDimension()))
 			{
-				link=PocketManager.getDimensionData(link.source().getDimension()).createLink(link.link.point,LinkTypes.SAFE_EXIT,link.link.orientation);
+				link=PocketManager.getDimensionData(link.source().getDimension()).createLink(link.point,LinkTypes.SAFE_EXIT,link.orientation, null);
 			}
 			else
 			{
@@ -500,6 +500,8 @@ public class DDTeleporter
 				return PocketBuilder.generateNewDungeonPocket(link, properties);
 			case LinkTypes.POCKET:
 				return PocketBuilder.generateNewPocket(link, properties,door);
+			case LinkTypes.PERSONAL:
+				return setupPersonalLink(link, properties, entity, door);
 			case LinkTypes.SAFE_EXIT:
 				return generateSafeExit(link, properties);
 			case LinkTypes.DUNGEON_EXIT:
@@ -513,6 +515,29 @@ public class DDTeleporter
 			default:
 				throw new IllegalArgumentException("link has an unrecognized link type.");
 		}
+	}
+	
+	private static boolean setupPersonalLink(DimLink link, DDProperties properties,Entity player, Block door)
+	{
+		if(!(player instanceof EntityPlayer))
+		{
+			return false;
+		}
+		
+		NewDimData dim = PocketManager.getPersonalDimensionForPlayer(player.getEntityName());
+		if(dim == null)
+		{
+			return PocketBuilder.generateNewPersonalPocket(link, properties, player, door);
+		}
+		
+		DimLink personalHomeLink = dim.getLink(dim.origin());
+		if(personalHomeLink!=null)
+		{
+			PocketManager.getDimensionData(link.source().getDimension()).setDestination(personalHomeLink, link.source().getX(), link.source().getY(), link.source().getZ());
+		}
+		
+		dim.setDestination(link, dim.origin.getX(), dim.origin.getY(), dim.origin.getZ());
+		return true;
 	}
 
 	private static Point4D getRandomDestination()
@@ -561,7 +586,7 @@ public class DDTeleporter
 		// To avoid loops, don't generate a destination if the player is
 		// already in a non-pocket dimension.
 		
-		NewDimData current = PocketManager.getDimensionData(link.link.point.getDimension());
+		NewDimData current = PocketManager.getDimensionData(link.point.getDimension());
 		if (current.isPocketDimension())
 		{
 			Point4D source = link.source();
@@ -585,7 +610,7 @@ public class DDTeleporter
 	{
 		World startWorld = PocketManager.loadDimension(link.source().getDimension());
 		World destWorld = PocketManager.loadDimension(link.destination().getDimension());
-		TileEntity doorTE = startWorld.getBlockTileEntity(link.source().getX(), link.source().getY(), link.link.point.getZ());
+		TileEntity doorTE = startWorld.getBlockTileEntity(link.source().getX(), link.source().getY(), link.point.getZ());
 		if(doorTE instanceof TileEntityDimDoor)
 		{
 			if((TileEntityDimDoor.class.cast(doorTE).hasGennedPair))
@@ -617,7 +642,7 @@ public class DDTeleporter
 	}
 	private static boolean generateSafeExit(DimLink link, DDProperties properties)
 	{
-		NewDimData current = PocketManager.getDimensionData(link.link.point.getDimension());
+		NewDimData current = PocketManager.getDimensionData(link.point.getDimension());
 		return generateSafeExit(current.root(), link, properties);
 	}
 	
@@ -628,7 +653,7 @@ public class DDTeleporter
 		// There is a chance of choosing the Nether first before other root dimensions
 		// to compensate for servers with many Mystcraft ages or other worlds.
 		
-		NewDimData current = PocketManager.getDimensionData(link.link.point.getDimension());
+		NewDimData current = PocketManager.getDimensionData(link.point.getDimension());
 		ArrayList<NewDimData> roots = PocketManager.getRootDimensions();
 		int shiftChance = START_ROOT_SHIFT_CHANCE + ROOT_SHIFT_CHANCE_PER_LEVEL * (current.packDepth() - 1);
 
